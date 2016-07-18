@@ -69,8 +69,8 @@ uint16_t *rptr_xyus[4] = {
 
 /* user defined read and write functions */
 
-uint16_t (*e6809_read8) (uint16_t address);
-void (*e6809_write8) (uint16_t address, uint16_t data);
+uint8_t (*e6809_read8) (uint16_t address);
+void (*e6809_write8) (uint16_t address, uint8_t data);
 
 /* obtain a particular condition code. returns 0 or 1. */
 

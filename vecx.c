@@ -5,63 +5,61 @@
 #include "osint.h"
 #include "e8910.h"
 
-#define einline __inline
-
-unsigned char rom[8192];
-unsigned char cart[32768];
-static unsigned char ram[1024];
+uint8_t rom[8192];
+uint8_t cart[32768];
+uint8_t ram[1024];
 
 /* the sound chip registers */
 
-unsigned snd_regs[16];
-static unsigned snd_select;
+uint8_t snd_regs[16];
+uint8_t snd_select;
 
 /* the via 6522 registers */
 
-static unsigned via_ora;
-static unsigned via_orb;
-static unsigned via_ddra;
-static unsigned via_ddrb;
-static unsigned via_t1on;  /* is timer 1 on? */
-static unsigned via_t1int; /* are timer 1 interrupts allowed? */
-static unsigned via_t1c;
-static unsigned via_t1ll;
-static unsigned via_t1lh;
-static unsigned via_t1pb7; /* timer 1 controlled version of pb7 */
-static unsigned via_t2on;  /* is timer 2 on? */
-static unsigned via_t2int; /* are timer 2 interrupts allowed? */
-static unsigned via_t2c;
-static unsigned via_t2ll;
-static unsigned via_sr;
-static unsigned via_srb;   /* number of bits shifted so far */
-static unsigned via_src;   /* shift counter */
-static unsigned via_srclk;
-static unsigned via_acr;
-static unsigned via_pcr;
-static unsigned via_ifr;
-static unsigned via_ier;
-static unsigned via_ca2;
-static unsigned via_cb2h;  /* basic handshake version of cb2 */
-static unsigned via_cb2s;  /* version of cb2 controlled by the shift register */
+uint8_t via_ora;
+uint8_t via_orb;
+uint8_t via_ddra;
+uint8_t via_ddrb;
+uint8_t via_t1on;  /* is timer 1 on? */
+uint8_t via_t1int; /* are timer 1 interrupts allowed? */
+uint16_t via_t1c;
+uint8_t via_t1ll;
+uint8_t via_t1lh;
+uint8_t via_t1pb7; /* timer 1 controlled version of pb7 */
+uint8_t via_t2on;  /* is timer 2 on? */
+uint8_t via_t2int; /* are timer 2 interrupts allowed? */
+uint16_t via_t2c;
+uint8_t via_t2ll;
+uint8_t via_sr;
+uint8_t via_srb;   /* number of bits shifted so far */
+uint8_t via_src;   /* shift counter */
+uint8_t via_srclk;
+uint8_t via_acr;
+uint8_t via_pcr;
+uint8_t via_ifr;
+uint8_t via_ier;
+uint8_t via_ca2;
+uint8_t via_cb2h;  /* basic handshake version of cb2 */
+uint8_t via_cb2s;  /* version of cb2 controlled by the shift register */
 
 /* analog devices */
 
-static unsigned alg_rsh;  /* zero ref sample and hold */
-static unsigned alg_xsh;  /* x sample and hold */
-static unsigned alg_ysh;  /* y sample and hold */
-static unsigned alg_zsh;  /* z sample and hold */
+unsigned alg_rsh;  /* zero ref sample and hold */
+unsigned alg_xsh;  /* x sample and hold */
+unsigned alg_ysh;  /* y sample and hold */
+unsigned alg_zsh;  /* z sample and hold */
 unsigned alg_jch0;		  /* joystick direction channel 0 */
 unsigned alg_jch1;		  /* joystick direction channel 1 */
 unsigned alg_jch2;		  /* joystick direction channel 2 */
 unsigned alg_jch3;		  /* joystick direction channel 3 */
-static unsigned alg_jsh;  /* joystick sample and hold */
+unsigned alg_jsh;  /* joystick sample and hold */
 
-static unsigned alg_compare;
+unsigned alg_compare;
 
-static long alg_dx;     /* delta x */
-static long alg_dy;     /* delta y */
-static long alg_curr_x; /* current x position */
-static long alg_curr_y; /* current y position */
+long alg_dx;     /* delta x */
+long alg_dy;     /* delta y */
+long alg_curr_x; /* current x position */
+long alg_curr_y; /* current y position */
 
 enum {
 	VECTREX_PDECAY	= 30,      /* phosphor decay rate */
@@ -80,28 +78,28 @@ enum {
 	VECTOR_HASH     = 65521
 };
 
-static unsigned alg_vectoring; /* are we drawing a vector right now? */
-static long alg_vector_x0;
-static long alg_vector_y0;
-static long alg_vector_x1;
-static long alg_vector_y1;
-static long alg_vector_dx;
-static long alg_vector_dy;
-static unsigned char alg_vector_color;
+unsigned alg_vectoring; /* are we drawing a vector right now? */
+long alg_vector_x0;
+long alg_vector_y0;
+long alg_vector_x1;
+long alg_vector_y1;
+long alg_vector_dx;
+long alg_vector_dy;
+unsigned char alg_vector_color;
 
 long vector_draw_cnt;
 long vector_erse_cnt;
-static vector_t vectors_set[2 * VECTOR_CNT];
+vector_t vectors_set[2 * VECTOR_CNT];
 vector_t *vectors_draw;
 vector_t *vectors_erse;
 
-static long vector_hash[VECTOR_HASH];
+long vector_hash[VECTOR_HASH];
 
-static long fcycles;
+long fcycles;
 
 /* update the snd chips internal registers when via_ora/via_orb changes */
 
-static einline void snd_update (void)
+static inline void snd_update (void)
 {
 	switch (via_orb & 0x18) {
 	case 0x00:
@@ -132,7 +130,7 @@ static einline void snd_update (void)
 
 /* update the various analog values when orb is written. */
 
-static einline void alg_update (void)
+static inline void alg_update (void)
 {
 	switch (via_orb & 0x06) {
 	case 0x00:
@@ -191,7 +189,7 @@ static einline void alg_update (void)
  * ifr.
  */
 
-static einline void int_update (void)
+static inline void int_update (void)
 {
 	if ((via_ifr & 0x7f) & (via_ier & 0x7f)) {
 		via_ifr |= 0x80;
@@ -200,9 +198,9 @@ static einline void int_update (void)
 	}
 }
 
-unsigned char read8 (unsigned address)
+uint8_t read8 (uint16_t address)
 {
-	unsigned char data = 0xff;
+	uint8_t data = 0xff;
 
 	if ((address & 0xe000) == 0xe000) {
 		/* rom */
@@ -344,7 +342,7 @@ unsigned char read8 (unsigned address)
 	return data;
 }
 
-void write8 (unsigned address, unsigned char data)
+void write8 (uint16_t address, uint8_t data)
 {
 	if ((address & 0xe000) == 0xe000) {
 		/* rom */
@@ -604,7 +602,7 @@ void vecx_reset (void)
  * via_sstep0 is the first postion of the emulation.
  */
 
-static einline void via_sstep0 (void)
+static inline void via_sstep0 (void)
 {
 	unsigned t2shift;
 
@@ -742,7 +740,7 @@ static einline void via_sstep0 (void)
 
 /* perform the second part of the via emulation */
 
-static einline void via_sstep1 (void)
+static inline void via_sstep1 (void)
 {
 	if ((via_pcr & 0x0e) == 0x0a) {
 		/* if ca2 is in pulse mode, then make sure
@@ -761,7 +759,7 @@ static einline void via_sstep1 (void)
 	}
 }
 
-static einline void alg_addline (long x0, long y0, long x1, long y1, unsigned char color)
+static inline void alg_addline (long x0, long y0, long x1, long y1, unsigned char color)
 {
 	unsigned long key;
 	long index;
@@ -809,7 +807,7 @@ static einline void alg_addline (long x0, long y0, long x1, long y1, unsigned ch
 
 /* perform a single cycle worth of analog emulation */
 
-static einline void alg_sstep (void)
+static inline void alg_sstep (void)
 {
 	long sig_dx, sig_dy;
 	unsigned sig_ramp;

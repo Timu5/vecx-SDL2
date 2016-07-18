@@ -21,9 +21,9 @@
 #define STEP  2
 
 struct AY8910 {
-	int index;
+	//int index;
 	int ready;
-	unsigned *Regs;
+	uint8_t *Regs;
 	int32_t lastEnable;
 	int32_t PeriodA, PeriodB, PeriodC, PeriodN, PeriodE;
 	int32_t CountA, CountB, CountC, CountN, CountE;
@@ -63,7 +63,7 @@ enum {
 	AY_PORTB		= 15
 };
 
-void e8910_write(int r, int v)
+void e8910_write(uint8_t r, uint8_t v)
 {
 	int32_t old;
 
@@ -484,7 +484,7 @@ static void e8910_build_mixer_table()
 }
 
 
-extern unsigned snd_regs[16];
+extern uint8_t snd_regs[16];
 
 void e8910_init_sound()
 {
@@ -509,7 +509,8 @@ void e8910_init_sound()
 	reqSpec.callback = e8910_callback;      // Callback function for filling the audio buffer
 	reqSpec.userdata = NULL;
 	/* Open the audio device */
-	if ( SDL_OpenAudio(&reqSpec, &givenSpec) < 0 ) {
+	if (SDL_OpenAudio(&reqSpec, &givenSpec) < 0) 
+	{
 		fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
 		exit(-1);
 	}
