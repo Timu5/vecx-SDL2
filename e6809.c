@@ -28,39 +28,39 @@ enum {
 
 /* index registers */
 
-unsigned reg_x;
-unsigned reg_y;
+uint16_t reg_x;
+uint16_t reg_y;
 
 /* user stack pointer */
 
-unsigned reg_u;
+uint16_t reg_u;
 
 /* hardware stack pointer */
 
-unsigned reg_s;
+uint16_t reg_s;
 
 /* program counter */
 
-unsigned reg_pc;
+uint16_t reg_pc;
 
 /* accumulators */
 
-unsigned reg_a;
-unsigned reg_b;
+uint8_t reg_a;
+uint8_t reg_b;
 
 /* direct page register */
 
-unsigned reg_dp;
+uint8_t reg_dp;
 
 /* condition codes */
 
-unsigned reg_cc;
+uint8_t reg_cc;
 
 /* flag to see if interrupts should be handled (sync/cwai). */
 
-unsigned irq_status;
+uint8_t irq_status;
 
-unsigned *rptr_xyus[4] = {
+uint16_t *rptr_xyus[4] = {
 	&reg_x,
 	&reg_y,
 	&reg_u,
@@ -69,12 +69,12 @@ unsigned *rptr_xyus[4] = {
 
 /* user defined read and write functions */
 
-unsigned char (*e6809_read8) (unsigned address);
-void (*e6809_write8) (unsigned address, unsigned char data);
+uint8_t (*e6809_read8) (uint16_t address);
+void (*e6809_write8) (uint16_t address, uint8_t data);
 
 /* obtain a particular condition code. returns 0 or 1. */
 
-inline unsigned get_cc (unsigned flag)
+inline uint8_t get_cc (uint8_t flag)
 {
 	return (reg_cc / flag) & 1;
 }
@@ -83,7 +83,7 @@ inline unsigned get_cc (unsigned flag)
  * value parameter must be either 0 or 1.
  */
 
-inline void set_cc (unsigned flag, unsigned value)
+inline void set_cc (uint8_t flag, uint8_t value)
 {
 	reg_cc &= ~flag;
 	reg_cc |= value * flag;
@@ -91,7 +91,7 @@ inline void set_cc (unsigned flag, unsigned value)
 
 /* test carry */
 
-inline unsigned test_c (unsigned i0, unsigned i1,
+inline uint8_t test_c (unsigned i0, unsigned i1,
 						unsigned r, unsigned sub)
 {
 	unsigned flag;
@@ -106,14 +106,14 @@ inline unsigned test_c (unsigned i0, unsigned i1,
 
 /* test negative */
 
-inline unsigned test_n (unsigned r)
+inline uint8_t test_n (uint8_t r)
 {
 	return (r >> 7) & 1;
 }
 
 /* test for zero in lower 8 bits */
 
-inline unsigned test_z8 (unsigned r)
+inline uint8_t test_z8 (unsigned r)
 {
 	unsigned flag;
 
@@ -171,43 +171,38 @@ inline void set_reg_d (unsigned value)
  * while the upper bits are all zero.
  */
 
-inline unsigned read8 (unsigned address)
+inline uint8_t read8 (uint16_t address)
 {
-	return (*e6809_read8) (address & 0xffff);
+	return (*e6809_read8) (address);
 }
 
 /* write a byte ... only the lower 8-bits of the unsigned data
  * is written. the upper bits are ignored.
  */
 
-inline void write8 (unsigned address, unsigned data)
+inline void write8 (uint16_t address, uint8_t data)
 {
-	(*e6809_write8) (address & 0xffff, (unsigned char) data);
+	(*e6809_write8) (address, data);
 }
 
-inline unsigned read16 (unsigned address)
+inline uint16_t read16 (uint16_t address)
 {
-	unsigned datahi, datalo;
-
-	datahi = read8 (address);
-	datalo = read8 (address + 1);
-
-	return (datahi << 8) | datalo;
+	return (read8 (address) << 8) | read8 (address + 1);
 }
 
-inline void write16 (unsigned address, unsigned data)
+inline void write16 (uint16_t address, uint16_t data)
 {
 	write8 (address, data >> 8);
 	write8 (address + 1, data);
 }
 
-inline void push8 (unsigned *sp, unsigned data)
+inline void push8 (uint16_t *sp, uint8_t data)
 {
 	(*sp)--;
 	write8 (*sp, data);
 }
 
-inline unsigned pull8 (unsigned *sp)
+inline uint8_t pull8 (uint16_t *sp)
 {
 	unsigned data;
 
@@ -217,39 +212,29 @@ inline unsigned pull8 (unsigned *sp)
 	return data;
 }
 
-inline void push16 (unsigned *sp, unsigned data)
+inline void push16 (uint16_t *sp, uint16_t data)
 {
 	push8 (sp, data);
 	push8 (sp, data >> 8);
 }
 
-inline unsigned pull16 (unsigned *sp)
+inline uint16_t pull16 (uint16_t *sp)
 {
-	unsigned datahi, datalo;
-
-	datahi = pull8 (sp);
-	datalo = pull8 (sp);
-
-	return (datahi << 8) | datalo;
+	return (pull8 (sp) << 8) | pull8 (sp);
 }
 
 /* read a byte from the address pointed to by the pc */
 
-inline unsigned pc_read8 (void)
+inline uint8_t pc_read8 (void)
 {
-	unsigned data;
-
-	data = read8 (reg_pc);
-	reg_pc++;
-
-	return data;
+	return read8(reg_pc++);
 }
 
 /* read a word from the address pointed to by the pc */
 
-inline unsigned pc_read16 (void)
+inline uint16_t pc_read16 (void)
 {
-	unsigned data;
+	uint16_t data;
 
 	data = read16 (reg_pc);
 	reg_pc += 2;
@@ -259,7 +244,7 @@ inline unsigned pc_read16 (void)
 
 /* sign extend an 8-bit quantity into a 16-bit quantity */
 
-inline unsigned sign_extend (unsigned data)
+inline uint16_t sign_extend (uint8_t data)
 {
 	return (~(data & 0x80) + 1) | (data & 0xff);
 }
@@ -269,7 +254,7 @@ inline unsigned sign_extend (unsigned data)
  * instruction itself.
  */
 
-inline unsigned ea_direct (void)
+inline uint16_t ea_direct (void)
 {
 	return (reg_dp << 8) | pc_read8 ();
 }
@@ -278,16 +263,17 @@ inline unsigned ea_direct (void)
  * the instruction.
  */
 
-inline unsigned ea_extended (void)
+inline uint16_t ea_extended (void)
 {
 	return pc_read16 ();
 }
 
 /* indexed addressing */
 
-inline unsigned ea_indexed (unsigned *cycles)
+inline uint16_t ea_indexed (unsigned *cycles)
 {
-	unsigned r, op, ea = 0;
+	uint8_t r, op;
+	uint16_t ea = 0;
 
 	/* post byte */
 
