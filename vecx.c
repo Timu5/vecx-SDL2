@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdint.h>
 #include "e6809.h"
 #include "vecx.h"
 #include "osint.h"
