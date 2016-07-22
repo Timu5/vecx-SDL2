@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
+
 #include "e6809.h"
 
 /* code assumptions:

@@ -1,8 +1,9 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 #include <SDL.h>
+
+#include "e8910.h"
 
 /***************************************************************************
 
@@ -21,7 +22,6 @@
 #define STEP  2
 
 struct AY8910 {
-	//int index;
 	int ready;
 	uint8_t *Regs;
 	int32_t lastEnable;
@@ -33,7 +33,7 @@ struct AY8910 {
 	int8_t CountEnv;
 	uint8_t Hold, Alternate, Attack, Holding;
 	int32_t RNG;
-	unsigned int VolTable[32];
+	uint32_t VolTable[32];
 
 } PSG;
 
@@ -63,7 +63,7 @@ enum {
 	AY_PORTB		= 15
 };
 
-void e8910_write(uint8_t r, uint8_t v)
+void e8910_write (uint8_t r, uint8_t v)
 {
 	int32_t old;
 
@@ -80,8 +80,7 @@ void e8910_write(uint8_t r, uint8_t v)
 	/* Also, note that period = 0 is the same as period = 1. This is mentioned */
 	/* in the YM2203 data sheets. However, this does NOT apply to the Envelope */
 	/* period. In that case, period = 0 is half as period = 1. */
-	switch( r )
-	{
+	switch (r) {
 	case AY_AFINE:
 	case AY_ACOARSE:
 		PSG.Regs[AY_ACOARSE] &= 0x0f;
@@ -173,14 +172,11 @@ void e8910_write(uint8_t r, uint8_t v)
         */
 		PSG.Regs[AY_ESHAPE] &= 0x0f;
 		PSG.Attack = (PSG.Regs[AY_ESHAPE] & 0x04) ? 0x1f : 0x00;
-		if ((PSG.Regs[AY_ESHAPE] & 0x08) == 0)
-		{
+		if ((PSG.Regs[AY_ESHAPE] & 0x08) == 0) {
 			/* if Continue = 0, map the shape to the equivalent one which has Continue = 1 */
 			PSG.Hold = 1;
 			PSG.Alternate = PSG.Attack;
-		}
-		else
-		{
+		} else {
 			PSG.Hold = PSG.Regs[AY_ESHAPE] & 0x01;
 			PSG.Alternate = PSG.Regs[AY_ESHAPE] & 0x02;
 		}
@@ -199,7 +195,7 @@ void e8910_write(uint8_t r, uint8_t v)
 	}
 }
 
-static void e8910_callback(void *userdata, uint8_t *stream, int length)
+static void e8910_callback (void *userdata, uint8_t *stream, int length)
 {
 	(void) userdata;
 
@@ -207,9 +203,8 @@ static void e8910_callback(void *userdata, uint8_t *stream, int length)
 	uint8_t* buf1 = stream;
 
 	/* hack to prevent us from hanging when starting filtered outputs */
-	if (!PSG.ready)
-	{
-		memset(stream, 0, length * sizeof(*stream));
+	if (!PSG.ready) {
+		memset (stream, 0, length * sizeof (*stream));
 		return;
 	}
 
@@ -228,34 +223,27 @@ static void e8910_callback(void *userdata, uint8_t *stream, int length)
 	/* Setting the output to 1 is necessary because a disabled channel is locked */
 	/* into the ON state (see above); and it has no effect if the volume is 0. */
 	/* If the volume is 0, increase the counter, but don't touch the output. */
-	if (PSG.Regs[AY_ENABLE] & 0x01)
-	{
+	if (PSG.Regs[AY_ENABLE] & 0x01) {
 		if (PSG.CountA <= STEP2) PSG.CountA += STEP2;
 		PSG.OutputA = 1;
-	}
-	else if (PSG.Regs[AY_AVOL] == 0)
-	{
+	} else if (PSG.Regs[AY_AVOL] == 0) {
 		/* note that I do count += length, NOT count = length + 1. You might think */
 		/* it's the same since the volume is 0, but doing the latter could cause */
 		/* interferencies when the program is rapidly modulating the volume. */
 		if (PSG.CountA <= STEP2) PSG.CountA += STEP2;
 	}
-	if (PSG.Regs[AY_ENABLE] & 0x02)
-	{
+	
+	if (PSG.Regs[AY_ENABLE] & 0x02) {
 		if (PSG.CountB <= STEP2) PSG.CountB += STEP2;
 		PSG.OutputB = 1;
-	}
-	else if (PSG.Regs[AY_BVOL] == 0)
-	{
+	} else if (PSG.Regs[AY_BVOL] == 0) {
 		if (PSG.CountB <= STEP2) PSG.CountB += STEP2;
 	}
-	if (PSG.Regs[AY_ENABLE] & 0x04)
-	{
+	
+	if (PSG.Regs[AY_ENABLE] & 0x04) {
 		if (PSG.CountC <= STEP2) PSG.CountC += STEP2;
 		PSG.OutputC = 1;
-	}
-	else if (PSG.Regs[AY_CVOL] == 0)
-	{
+	} else if (PSG.Regs[AY_CVOL] == 0) {
 		if (PSG.CountC <= STEP2) PSG.CountC += STEP2;
 	}
 
@@ -267,8 +255,7 @@ static void e8910_callback(void *userdata, uint8_t *stream, int length)
 	outn = (PSG.OutputN | PSG.Regs[AY_ENABLE]);
 
 	/* buffering loop */
-	while (length > 0)
-	{
+	while (length > 0) {
         unsigned vol;
 		int left  = 2;
 		/* vola, volb and volc keep track of how long each square wave stays */
@@ -277,15 +264,13 @@ static void e8910_callback(void *userdata, uint8_t *stream, int length)
 		int vola,volb,volc;
 		vola = volb = volc = 0;
 
-		do
-		{
+		do {
 			int nextevent;
 
 			if (PSG.CountN < left) nextevent = PSG.CountN;
 			else nextevent = left;
 
-			if (outn & 0x08)
-			{
+			if (outn & 0x08) {
 				if (PSG.OutputA) vola += PSG.CountA;
 				PSG.CountA -= nextevent;
 				/* PeriodA is the half period of the square wave. Here, in each */
@@ -296,11 +281,9 @@ static void e8910_callback(void *userdata, uint8_t *stream, int length)
 				/* If we exit the loop in the middle, OutputA has to be inverted */
 				/* and vola incremented only if the exit status of the square */
 				/* wave is 1. */
-				while (PSG.CountA <= 0)
-				{
+				while (PSG.CountA <= 0) {
 					PSG.CountA += PSG.PeriodA;
-					if (PSG.CountA > 0)
-					{
+					if (PSG.CountA > 0) {
 						PSG.OutputA ^= 1;
 						if (PSG.OutputA) vola += PSG.PeriodA;
 						break;
@@ -313,11 +296,9 @@ static void e8910_callback(void *userdata, uint8_t *stream, int length)
 			else
 			{
 				PSG.CountA -= nextevent;
-				while (PSG.CountA <= 0)
-				{
+				while (PSG.CountA <= 0) {
 					PSG.CountA += PSG.PeriodA;
-					if (PSG.CountA > 0)
-					{
+					if (PSG.CountA > 0) {
 						PSG.OutputA ^= 1;
 						break;
 					}
@@ -325,15 +306,12 @@ static void e8910_callback(void *userdata, uint8_t *stream, int length)
 				}
 			}
 
-			if (outn & 0x10)
-			{
+			if (outn & 0x10) {
 				if (PSG.OutputB) volb += PSG.CountB;
 				PSG.CountB -= nextevent;
-				while (PSG.CountB <= 0)
-				{
+				while (PSG.CountB <= 0) {
 					PSG.CountB += PSG.PeriodB;
-					if (PSG.CountB > 0)
-					{
+					if (PSG.CountB > 0) {
 						PSG.OutputB ^= 1;
 						if (PSG.OutputB) volb += PSG.PeriodB;
 						break;
@@ -342,15 +320,11 @@ static void e8910_callback(void *userdata, uint8_t *stream, int length)
 					volb += PSG.PeriodB;
 				}
 				if (PSG.OutputB) volb -= PSG.CountB;
-			}
-			else
-			{
+			} else {
 				PSG.CountB -= nextevent;
-				while (PSG.CountB <= 0)
-				{
+				while (PSG.CountB <= 0) {
 					PSG.CountB += PSG.PeriodB;
-					if (PSG.CountB > 0)
-					{
+					if (PSG.CountB > 0) {
 						PSG.OutputB ^= 1;
 						break;
 					}
@@ -358,15 +332,12 @@ static void e8910_callback(void *userdata, uint8_t *stream, int length)
 				}
 			}
 
-			if (outn & 0x20)
-			{
+			if (outn & 0x20) {
 				if (PSG.OutputC) volc += PSG.CountC;
 				PSG.CountC -= nextevent;
-				while (PSG.CountC <= 0)
-				{
+				while (PSG.CountC <= 0) {
 					PSG.CountC += PSG.PeriodC;
-					if (PSG.CountC > 0)
-					{
+					if (PSG.CountC > 0) {
 						PSG.OutputC ^= 1;
 						if (PSG.OutputC) volc += PSG.PeriodC;
 						break;
@@ -375,15 +346,11 @@ static void e8910_callback(void *userdata, uint8_t *stream, int length)
 					volc += PSG.PeriodC;
 				}
 				if (PSG.OutputC) volc -= PSG.CountC;
-			}
-			else
-			{
+			} else {
 				PSG.CountC -= nextevent;
-				while (PSG.CountC <= 0)
-				{
+				while (PSG.CountC <= 0) {
 					PSG.CountC += PSG.PeriodC;
-					if (PSG.CountC > 0)
-					{
+					if (PSG.CountC > 0) {
 						PSG.OutputC ^= 1;
 						break;
 					}
@@ -392,11 +359,9 @@ static void e8910_callback(void *userdata, uint8_t *stream, int length)
 			}
 
 			PSG.CountN -= nextevent;
-			if (PSG.CountN <= 0)
-			{
+			if (PSG.CountN <= 0) {
 				/* Is noise output going to change? */
-				if ((PSG.RNG + 1) & 2)	/* (bit0^bit1)? */
-				{
+				if ((PSG.RNG + 1) & 2)	/* (bit0^bit1)? */ {
 					PSG.OutputN = ~PSG.OutputN;
 					outn = (PSG.OutputN | PSG.Regs[AY_ENABLE]);
 				}
@@ -419,29 +384,22 @@ static void e8910_callback(void *userdata, uint8_t *stream, int length)
 		} while (left > 0);
 
 		/* update envelope */
-		if (PSG.Holding == 0)
-		{
+		if (PSG.Holding == 0) {
 			PSG.CountE -= STEP;
-			if (PSG.CountE <= 0)
-			{
-				do
-				{
+			if (PSG.CountE <= 0) {
+				do {
 					PSG.CountEnv--;
 					PSG.CountE += PSG.PeriodE;
 				} while (PSG.CountE <= 0);
 
 				/* check envelope current position */
-				if (PSG.CountEnv < 0)
-				{
-					if (PSG.Hold)
-					{
+				if (PSG.CountEnv < 0) {
+					if (PSG.Hold) {
 						if (PSG.Alternate)
 							PSG.Attack ^= 0x1f;
 						PSG.Holding = 1;
 						PSG.CountEnv = 0;
-					}
-					else
-					{
+					} else {
 						/* if CountEnv has looped an odd number of times (usually 1), */
 						/* invert the output. */
 						if (PSG.Alternate && (PSG.CountEnv & 0x20))
@@ -465,7 +423,7 @@ static void e8910_callback(void *userdata, uint8_t *stream, int length)
 }
 
 
-static void e8910_build_mixer_table()
+static void e8910_build_mixer_table (void)
 {
 	int i;
 	double out;
@@ -475,9 +433,8 @@ static void e8910_build_mixer_table()
 	/* The YM2149 still has 16 levels for the tone generators, but 32 for */
 	/* the envelope generator (1.5dB per STEP). */
 	out = MAX_OUTPUT;
-	for (i = 31;i > 0;i--)
-	{
-		PSG.VolTable[i] = (unsigned)(out + 0.5);	/* round to nearest */
+	for (i = 31;i > 0;i--) {
+		PSG.VolTable[i] = (unsigned) (out + 0.5);	/* round to nearest */
 		out /= 1.188502227;	/* = 10 ^ (1.5/20) = 1.5dB */
 	}
 	PSG.VolTable[0] = 0;
@@ -486,7 +443,7 @@ static void e8910_build_mixer_table()
 
 extern uint8_t snd_regs[16];
 
-void e8910_init_sound()
+void e8910_init_sound (void)
 {
 	// SDL audio stuff
 	SDL_AudioSpec reqSpec;
@@ -498,7 +455,7 @@ void e8910_init_sound()
 	PSG.OutputB = 0;
 	PSG.OutputC = 0;
 	PSG.OutputN = 0xff;
-	e8910_build_mixer_table();
+	e8910_build_mixer_table ();
 	PSG.ready = 1;
 
 	// set up audio buffering
@@ -509,22 +466,17 @@ void e8910_init_sound()
 	reqSpec.callback = e8910_callback;      // Callback function for filling the audio buffer
 	reqSpec.userdata = NULL;
 	/* Open the audio device */
-	if (SDL_OpenAudio(&reqSpec, &givenSpec) < 0) 
-	{
-		fprintf(stderr, "Couldn't open audio: %s\n", SDL_GetError());
-		exit(-1);
+	if (SDL_OpenAudio (&reqSpec, &givenSpec) < 0) {
+		fprintf (stderr, "Couldn't open audio: %s\n", SDL_GetError ());
+		exit (-1);
 	}
 
-# if 0
-	fprintf(stdout, "samples:%d format=%x freq=%d\n", givenSpec.samples, givenSpec.format, givenSpec.freq);
-# endif
-
 	// Start playing audio
-	SDL_PauseAudio(0);
+	SDL_PauseAudio (0);
 }
 
-void e8910_done_sound()
+void e8910_done_sound (void)
 {
-	SDL_CloseAudio();
+	SDL_CloseAudio ();
 }
 
