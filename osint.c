@@ -29,12 +29,18 @@ void osint_render (void) {
 
 	for (v = 0; v < vector_draw_cnt; v++) {
 		Uint8 c = vectors_draw[v].color * 256 / VECTREX_COLORS;
-		SDL_SetRenderDrawColor (renderer, c, c, c, 0);
-		SDL_RenderDrawLine (renderer,
-				vectors_draw[v].x0 / scl_factor,
-				vectors_draw[v].y0 / scl_factor,
-				vectors_draw[v].x1 / scl_factor,
-				vectors_draw[v].y1 / scl_factor);
+		int x0 = vectors_draw[v].x0 / scl_factor;
+		int y0 = vectors_draw[v].y0 / scl_factor;
+		int x1 = vectors_draw[v].x1 / scl_factor;
+		int y1 = vectors_draw[v].y1 / scl_factor;
+
+		SDL_SetRenderDrawColor(renderer, c, c, c, 0);
+		if (x0 == x1 && y0 == y1) {
+			/* point */
+			SDL_RenderDrawPoint(renderer, x0, y0);
+		} else {
+			SDL_RenderDrawLine(renderer, x0, y0, x1, y1);
+		}
 	}
 
 	SDL_RenderPresent (renderer);
