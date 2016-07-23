@@ -98,6 +98,11 @@ static int readevents (void) {
 				if (e.window.event == SDL_WINDOWEVENT_RESIZED)
 					resize ();
 				break;
+			case SDL_DROPFILE:
+				cartfilename = e.drop.file;
+				init();
+				vecx_reset();
+				break;
 			case SDL_KEYDOWN:
 				switch (e.key.keysym.sym) {
 					case SDLK_ESCAPE:
