@@ -11,6 +11,8 @@ Requirements
 Usage
 -----
 
+vecx [rom_file] [overlay_file]
+
 Authors
 -------
 

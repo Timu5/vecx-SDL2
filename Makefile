@@ -1,5 +1,5 @@
 
-CFLAGS := -O3 -Wall -Wextra $(shell sdl2-config --cflags)
+CFLAGS := -std=gnu89 -O3 -Wall -Wextra $(shell sdl2-config --cflags)
 LIBS := $(shell sdl2-config --libs) -lSDL2_image
 OBJECTS := e6809.o e8910.o osint.o vecx.o
 TARGET := vecx

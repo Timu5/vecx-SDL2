@@ -1,3 +1,6 @@
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 #include <SDL.h>
 #include <SDL_image.h>
 
@@ -80,7 +83,7 @@ void resize (void) {
 
 static int readevents (void) {
 	SDL_Event e;
-	while (SDL_PollEvent (&e)) {
+	while (SDL_PollEvent (&e) ) {
 		switch (e.type){
 			case SDL_QUIT:
 				return 1;
@@ -186,17 +189,17 @@ void load_overlay (const char *filename) {
 	}
 }
 
-int main (int argc, char *argv[]) {
+int main (int argc, char *argv[]) {			
 	if (SDL_Init (SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
 		fprintf (stderr, "Failed to initialize SDL: %s\n", SDL_GetError ());
-		exit (-1);
+		exit (EXIT_FAILURE);
 	}
 
 	window = SDL_CreateWindow ("Vecx", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 330 * 3 / 2, 410 * 3 / 2, SDL_WINDOW_RESIZABLE);
 	if (!window) {
 		fprintf (stderr, "Failed to create window: %s\n", SDL_GetError ());
 		SDL_Quit ();
-		exit (-1);
+		exit (EXIT_FAILURE);
 	}
 
 	renderer = SDL_CreateRenderer (window, -1, SDL_RENDERER_ACCELERATED);
@@ -204,7 +207,7 @@ int main (int argc, char *argv[]) {
 		fprintf (stderr, "Failed to create renderer: %s\n", SDL_GetError ());
 		SDL_DestroyWindow (window);
 		SDL_Quit ();
-		exit (-1);
+		exit (EXIT_FAILURE);
 	}
 
 	resize ();
