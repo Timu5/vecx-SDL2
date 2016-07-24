@@ -49,7 +49,7 @@ void osint_render (void) {
 static char *romfilename = "rom.dat";
 static char *cartfilename = NULL;
 
-static void init (void) {
+static void osint_init (void) {
 	FILE *f;
 	if (! (f = fopen (romfilename, "rb") ) ) {
 		perror (romfilename);
@@ -73,7 +73,7 @@ static void init (void) {
 	}
 }
 
-void resize (void) {
+static void osint_resize (void) {
 	int sclx, scly;
 	int screenx, screeny;
 	
@@ -87,7 +87,7 @@ void resize (void) {
 	SDL_RenderSetLogicalSize (renderer, ALG_MAX_X / scl_factor, ALG_MAX_Y / scl_factor);
 }
 
-static int readevents (void) {
+static int osint_readevents (void) {
 	SDL_Event e;
 	while (SDL_PollEvent (&e) ) {
 		switch (e.type){
@@ -96,11 +96,11 @@ static int readevents (void) {
 				break;
 			case SDL_WINDOWEVENT:
 				if (e.window.event == SDL_WINDOWEVENT_RESIZED)
-					resize ();
+					osint_resize ();
 				break;
 			case SDL_DROPFILE:
 				cartfilename = e.drop.file;
-				init();
+				osint_init();
 				vecx_reset();
 				break;
 			case SDL_KEYDOWN:
@@ -177,7 +177,7 @@ void osint_emuloop (void) {
 	vecx_reset ();
 	for (;;) {
 		vecx_emu ((VECTREX_MHZ / 1000) * EMU_TIMER);
-		if (readevents ()) break;
+		if (osint_readevents ()) break;
 
 		{
 			Uint32 now = SDL_GetTicks ();
@@ -190,7 +190,7 @@ void osint_emuloop (void) {
 	}
 }
 
-void load_overlay (const char *filename) {
+void osint_load_overlay (const char *filename) {
 	SDL_Texture *image;
 	image = IMG_LoadTexture (renderer, filename);
 	if (image) {
@@ -221,14 +221,14 @@ int main (int argc, char *argv[]) {
 		exit (EXIT_FAILURE);
 	}
 
-	resize ();
+	osint_resize ();
 
 	if (argc > 1)
 		cartfilename = argv[1];
 	if (argc > 2)
-		load_overlay (argv[2]);
+		osint_load_overlay (argv[2]);
 
-	init ();
+	osint_init ();
 	e8910_init_sound ();
 
 	osint_emuloop ();
