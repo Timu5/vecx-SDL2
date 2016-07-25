@@ -46,17 +46,17 @@ void osint_render (void) {
 	SDL_RenderPresent (renderer);
 }
 
-static char *romfilename = "rom.dat";
+static char *biosfilename = "bios.bin";
 static char *cartfilename = NULL;
 
 static void osint_init (void) {
 	FILE *f;
-	if (! (f = fopen (romfilename, "rb") ) ) {
-		perror (romfilename);
+	if (! (f = fopen (biosfilename, "rb") ) ) {
+		perror (biosfilename);
 		exit (EXIT_FAILURE);
 	}
 	if (fread (rom, 1, sizeof (rom), f) != sizeof (rom)){
-		printf ("Invalid rom length\n");
+		fprintf (stderr, "Invalid rom length\n");
 		exit (EXIT_FAILURE);
 	}
 	fclose (f);
