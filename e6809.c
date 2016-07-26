@@ -3,6 +3,7 @@
 
 #include "e6809.h"
 
+
 /* code assumptions:
  *  - it is assumed that an 'int' is at least 16 bits long.
  *  - a 16-bit register has valid bits only in the lower 16 bits and an
@@ -27,46 +28,7 @@ enum {
 	IRQ_CWAI	= 2
 };
 
-/* index registers */
-
-uint16_t reg_x;
-uint16_t reg_y;
-
-/* user stack pointer */
-
-uint16_t reg_u;
-
-/* hardware stack pointer */
-
-uint16_t reg_s;
-
-/* program counter */
-
-uint16_t reg_pc;
-
-/* accumulators */
-
-uint16_t reg_a;
-uint16_t reg_b;
-
-/* direct page register */
-
-uint16_t reg_dp;
-
-/* condition codes */
-
-uint16_t reg_cc;
-
-/* flag to see if interrupts should be handled (sync/cwai). */
-
-uint16_t irq_status;
-
-uint16_t *rptr_xyus[4] = {
-	&reg_x,
-	&reg_y,
-	&reg_u,
-	&reg_s
-};
+M6809 CPU;
 
 /* user defined read and write functions */
 
@@ -77,7 +39,7 @@ void (*e6809_write8) (uint16_t address, uint8_t data);
 
 __inline uint16_t get_cc (uint16_t flag)
 {
-	return (reg_cc / flag) & 1;
+	return (CPU.reg_cc / flag) & 1;
 }
 
 /* set a particular condition code to either 0 or 1.
@@ -86,8 +48,8 @@ __inline uint16_t get_cc (uint16_t flag)
 
 __inline void set_cc (uint16_t flag, uint16_t value)
 {
-	reg_cc &= ~flag;
-	reg_cc |= value * flag;
+	CPU.reg_cc &= ~flag;
+	CPU.reg_cc |= value * flag;
 }
 
 /* test carry */
@@ -159,13 +121,13 @@ __inline uint16_t test_v (uint16_t i0, uint16_t i1, uint16_t r)
 
 __inline uint16_t get_reg_d (void)
 {
-	return (reg_a << 8) | (reg_b & 0xff);
+	return (CPU.reg_a << 8) | (CPU.reg_b & 0xff);
 }
 
 __inline void set_reg_d (uint16_t value)
 {
-	reg_a = value >> 8;
-	reg_b = value;
+	CPU.reg_a = value >> 8;
+	CPU.reg_b = value;
 }
 
 /* read a byte ... the returned value has the lower 8-bits set to the byte
@@ -181,7 +143,7 @@ __inline uint16_t read8 (uint16_t address)
  * is written. the upper bits are ignored.
  */
 
-__inline void write8 (uint16_t address, uint16_t data)
+__inline void write8 (uint16_t address, uint8_t data)
 {
 	(*e6809_write8) (address, data);
 }
@@ -229,7 +191,7 @@ __inline uint16_t pull16 (uint16_t *sp)
 
 __inline uint16_t pc_read8 (void)
 {
-	return read8(reg_pc++);
+	return read8(CPU.reg_pc++);
 }
 
 /* read a word from the address pointed to by the pc */
@@ -238,8 +200,8 @@ __inline uint16_t pc_read16 (void)
 {
 	uint16_t data;
 
-	data = read16 (reg_pc);
-	reg_pc += 2;
+	data = read16 (CPU.reg_pc);
+	CPU.reg_pc += 2;
 
 	return data;
 }
@@ -258,7 +220,7 @@ __inline uint16_t sign_extend (uint16_t data)
 
 __inline uint16_t ea_direct (void)
 {
-	return (reg_dp << 8) | pc_read8 ();
+	return (CPU.reg_dp << 8) | pc_read8 ();
 }
 
 /* extended addressing, address is obtained from 2 bytes following
@@ -302,7 +264,7 @@ __inline uint16_t ea_indexed (uint16_t *cycles)
 	case 0x6c: case 0x6d: case 0x6e: case 0x6f:
 		/* R, +[0, 15] */
 
-		ea = *rptr_xyus[r] + (op & 0xf);
+		ea = *CPU.rptr_xyus[r] + (op & 0xf);
 		(*cycles)++;
 		break;
 	case 0x10: case 0x11: case 0x12: case 0x13:
@@ -323,7 +285,7 @@ __inline uint16_t ea_indexed (uint16_t *cycles)
 	case 0x7c: case 0x7d: case 0x7e: case 0x7f:
 		/* R, +[-16, -1] */
 
-		ea = *rptr_xyus[r] + (op & 0xf) - 0x10;
+		ea = *CPU.rptr_xyus[r] + (op & 0xf) - 0x10;
 		(*cycles)++;
 		break;
 	case 0x80: case 0x81:
@@ -332,8 +294,8 @@ __inline uint16_t ea_indexed (uint16_t *cycles)
 	case 0xe0: case 0xe1:
 		/* ,R+ / ,R++ */
 
-		ea = *rptr_xyus[r];
-		*rptr_xyus[r] += 1 + (op & 1);
+		ea = *CPU.rptr_xyus[r];
+		*CPU.rptr_xyus[r] += 1 + (op & 1);
 		*cycles += 2 + (op & 1);
 		break;
 	case 0x90: case 0x91:
@@ -342,8 +304,8 @@ __inline uint16_t ea_indexed (uint16_t *cycles)
 	case 0xf0: case 0xf1:
 		/* [,R+] ??? / [,R++] */
 
-		ea = read16 (*rptr_xyus[r]);
-		*rptr_xyus[r] += 1 + (op & 1);
+		ea = read16 (*CPU.rptr_xyus[r]);
+		*CPU.rptr_xyus[r] += 1 + (op & 1);
 		*cycles += 5 + (op & 1);
 		break;
 	case 0x82: case 0x83:
@@ -353,8 +315,8 @@ __inline uint16_t ea_indexed (uint16_t *cycles)
 
 		/* ,-R / ,--R */
 
-		*rptr_xyus[r] -= 1 + (op & 1);
-		ea = *rptr_xyus[r];
+		*CPU.rptr_xyus[r] -= 1 + (op & 1);
+		ea = *CPU.rptr_xyus[r];
 		*cycles += 2 + (op & 1);
 		break;
 	case 0x92: case 0x93:
@@ -363,91 +325,91 @@ __inline uint16_t ea_indexed (uint16_t *cycles)
 	case 0xf2: case 0xf3:
 		/* [,-R] ??? / [,--R] */
 
-		*rptr_xyus[r] -= 1 + (op & 1);
-		ea = read16 (*rptr_xyus[r]);
+		*CPU.rptr_xyus[r] -= 1 + (op & 1);
+		ea = read16 (*CPU.rptr_xyus[r]);
 		*cycles += 5 + (op & 1);
 		break;
 	case 0x84: case 0xa4:
 	case 0xc4: case 0xe4:
 		/* ,R */
 
-		ea = *rptr_xyus[r];
+		ea = *CPU.rptr_xyus[r];
 		break;
 	case 0x94: case 0xb4:
 	case 0xd4: case 0xf4:
 		/* [,R] */
 
-		ea = read16 (*rptr_xyus[r]);
+		ea = read16 (*CPU.rptr_xyus[r]);
 		*cycles += 3;
 		break;
 	case 0x85: case 0xa5:
 	case 0xc5: case 0xe5:
 		/* B,R */
 
-		ea = *rptr_xyus[r] + sign_extend (reg_b);
+		ea = *CPU.rptr_xyus[r] + sign_extend (CPU.reg_b);
 		*cycles += 1;
 		break;
 	case 0x95: case 0xb5:
 	case 0xd5: case 0xf5:
 		/* [B,R] */
 
-		ea = read16 (*rptr_xyus[r] + sign_extend (reg_b));
+		ea = read16 (*CPU.rptr_xyus[r] + sign_extend (CPU.reg_b));
 		*cycles += 4;
 		break;
 	case 0x86: case 0xa6:
 	case 0xc6: case 0xe6:
 		/* A,R */
 
-		ea = *rptr_xyus[r] + sign_extend (reg_a);
+		ea = *CPU.rptr_xyus[r] + sign_extend (CPU.reg_a);
 		*cycles += 1;
 		break;
 	case 0x96: case 0xb6:
 	case 0xd6: case 0xf6:
 		/* [A,R] */
 
-		ea = read16 (*rptr_xyus[r] + sign_extend (reg_a));
+		ea = read16 (*CPU.rptr_xyus[r] + sign_extend (CPU.reg_a));
 		*cycles += 4;
 		break;
 	case 0x88: case 0xa8:
 	case 0xc8: case 0xe8:
 		/* byte,R */
 
-		ea = *rptr_xyus[r] + sign_extend (pc_read8 ());
+		ea = *CPU.rptr_xyus[r] + sign_extend (pc_read8 ());
 		*cycles += 1;
 		break;
 	case 0x98: case 0xb8:
 	case 0xd8: case 0xf8:
 		/* [byte,R] */
 
-		ea = read16 (*rptr_xyus[r] + sign_extend (pc_read8 ()));
+		ea = read16 (*CPU.rptr_xyus[r] + sign_extend (pc_read8 ()));
 		*cycles += 4;
 		break;
 	case 0x89: case 0xa9:
 	case 0xc9: case 0xe9:
 		/* word,R */
 
-		ea = *rptr_xyus[r] + pc_read16 ();
+		ea = *CPU.rptr_xyus[r] + pc_read16 ();
 		*cycles += 4;
 		break;
 	case 0x99: case 0xb9:
 	case 0xd9: case 0xf9:
 		/* [word,R] */
 
-		ea = read16 (*rptr_xyus[r] + pc_read16 ());
+		ea = read16 (*CPU.rptr_xyus[r] + pc_read16 ());
 		*cycles += 7;
 		break;
 	case 0x8b: case 0xab:
 	case 0xcb: case 0xeb:
 		/* D,R */
 
-		ea = *rptr_xyus[r] + get_reg_d ();
+		ea = *CPU.rptr_xyus[r] + get_reg_d ();
 		*cycles += 4;
 		break;
 	case 0x9b: case 0xbb:
 	case 0xdb: case 0xfb:
 		/* [D,R] */
 
-		ea = read16 (*rptr_xyus[r] + get_reg_d ());
+		ea = read16 (*CPU.rptr_xyus[r] + get_reg_d ());
 		*cycles += 7;
 		break;
 	case 0x8c: case 0xac:
@@ -455,7 +417,7 @@ __inline uint16_t ea_indexed (uint16_t *cycles)
 		/* byte, PC */
 
 		r = sign_extend (pc_read8 ());
-		ea = reg_pc + r;
+		ea = CPU.reg_pc + r;
 		*cycles += 1;
 		break;
 	case 0x9c: case 0xbc:
@@ -463,7 +425,7 @@ __inline uint16_t ea_indexed (uint16_t *cycles)
 		/* [byte, PC] */
 
 		r = sign_extend (pc_read8 ());
-		ea = read16 (reg_pc + r);
+		ea = read16 (CPU.reg_pc + r);
 		*cycles += 4;
 		break;
 	case 0x8d: case 0xad:
@@ -471,7 +433,7 @@ __inline uint16_t ea_indexed (uint16_t *cycles)
 		/* word, PC */
 
 		r = pc_read16 ();
-		ea = reg_pc + r;
+		ea = CPU.reg_pc + r;
 		*cycles += 5;
 		break;
 	case 0x9d: case 0xbd:
@@ -479,7 +441,7 @@ __inline uint16_t ea_indexed (uint16_t *cycles)
 		/* [word, PC] */
 
 		r = pc_read16 ();
-		ea = read16 (reg_pc + r);
+		ea = read16 (CPU.reg_pc + r);
 		*cycles += 8;
 		break;
 	case 0x9f:
@@ -865,7 +827,7 @@ __inline void inst_bra8 (uint16_t test, uint16_t op, uint16_t *cycles)
 	/* trying to avoid an if statement */
 
 	mask = (test ^ (op & 1)) - 1; /* 0xffff when taken, 0 when not taken */
-	reg_pc += sign_extend (offset) & mask;
+	CPU.reg_pc += sign_extend (offset) & mask;
 
 	*cycles += 3;
 }
@@ -881,7 +843,7 @@ __inline void inst_bra16 (uint16_t test, uint16_t op, uint16_t *cycles)
 	/* trying to avoid an if statement */
 
 	mask = (test ^ (op & 1)) - 1; /* 0xffff when taken, 0 when not taken */
-	reg_pc += offset & mask;
+	CPU.reg_pc += offset & mask;
 
 	*cycles += 5 - mask;
 }
@@ -892,7 +854,7 @@ __inline void inst_psh (uint16_t op, uint16_t *sp,
 					   uint16_t data, uint16_t *cycles)
 {
 	if (op & 0x80) {
-		push16 (sp, reg_pc);
+		push16 (sp, CPU.reg_pc);
 		*cycles += 2;
 	}
 
@@ -903,32 +865,32 @@ __inline void inst_psh (uint16_t op, uint16_t *sp,
 	}
 
 	if (op & 0x20) {
-		push16 (sp, reg_y);
+		push16 (sp, CPU.reg_y);
 		*cycles += 2;
 	}
 
 	if (op & 0x10) {
-		push16 (sp, reg_x);
+		push16 (sp, CPU.reg_x);
 		*cycles += 2;
 	}
 
 	if (op & 0x08) {
-		push8 (sp, reg_dp);
+		push8 (sp, CPU.reg_dp);
 		*cycles += 1;
 	}
 
 	if (op & 0x04) {
-		push8 (sp, reg_b);
+		push8 (sp, CPU.reg_b);
 		*cycles += 1;
 	}
 
 	if (op & 0x02) {
-		push8 (sp, reg_a);
+		push8 (sp, CPU.reg_a);
 		*cycles += 1;
 	}
 
 	if (op & 0x01) {
-		push8 (sp, reg_cc);
+		push8 (sp, CPU.reg_cc);
 		*cycles += 1;
 	}
 }
@@ -939,32 +901,32 @@ __inline void inst_pul (uint16_t op, uint16_t *sp, uint16_t *osp,
 					   uint16_t *cycles)
 {
 	if (op & 0x01) {
-		reg_cc = pull8 (sp);
+		CPU.reg_cc = pull8 (sp);
 		*cycles += 1;
 	}
 
 	if (op & 0x02) {
-		reg_a = pull8 (sp);
+		CPU.reg_a = pull8 (sp);
 		*cycles += 1;
 	}
 
 	if (op & 0x04) {
-		reg_b = pull8 (sp);
+		CPU.reg_b = pull8 (sp);
 		*cycles += 1;
 	}
 
 	if (op & 0x08) {
-		reg_dp = pull8 (sp);
+		CPU.reg_dp = pull8 (sp);
 		*cycles += 1;
 	}
 
 	if (op & 0x10) {
-		reg_x = pull16 (sp);
+		CPU.reg_x = pull16 (sp);
 		*cycles += 2;
 	}
 
 	if (op & 0x20) {
-		reg_y = pull16 (sp);
+		CPU.reg_y = pull16 (sp);
 		*cycles += 2;
 	}
 
@@ -975,7 +937,7 @@ __inline void inst_pul (uint16_t op, uint16_t *sp, uint16_t *osp,
 	}
 
 	if (op & 0x80) {
-		reg_pc = pull16 (sp);
+		CPU.reg_pc = pull16 (sp);
 		*cycles += 2;
 	}
 }
@@ -989,31 +951,31 @@ __inline uint16_t exgtfr_read (uint16_t reg)
 		data = get_reg_d ();
 		break;
 	case 0x1:
-		data = reg_x;
+		data = CPU.reg_x;
 		break;
 	case 0x2:
-		data = reg_y;
+		data = CPU.reg_y;
 		break;
 	case 0x3:
-		data = reg_u;
+		data = CPU.reg_u;
 		break;
 	case 0x4:
-		data = reg_s;
+		data = CPU.reg_s;
 		break;
 	case 0x5:
-		data = reg_pc;
+		data = CPU.reg_pc;
 		break;
 	case 0x8:
-		data = 0xff00 | reg_a;
+		data = 0xff00 | CPU.reg_a;
 		break;
 	case 0x9:
-		data = 0xff00 | reg_b;
+		data = 0xff00 | CPU.reg_b;
 		break;
 	case 0xa:
-		data = 0xff00 | reg_cc;
+		data = 0xff00 | CPU.reg_cc;
 		break;
 	case 0xb:
-		data = 0xff00 | reg_dp;
+		data = 0xff00 | CPU.reg_dp;
 		break;
 	default:
 		data = 0xffff;
@@ -1031,31 +993,31 @@ __inline void exgtfr_write (uint16_t reg, uint16_t data)
 		set_reg_d (data);
 		break;
 	case 0x1:
-		reg_x = data;
+		CPU.reg_x = data;
 		break;
 	case 0x2:
-		reg_y = data;
+		CPU.reg_y = data;
 		break;
 	case 0x3:
-		reg_u = data;
+		CPU.reg_u = data;
 		break;
 	case 0x4:
-		reg_s = data;
+		CPU.reg_s = data;
 		break;
 	case 0x5:
-		reg_pc = data;
+		CPU.reg_pc = data;
 		break;
 	case 0x8:
-		reg_a = data;
+		CPU.reg_a = data;
 		break;
 	case 0x9:
-		reg_b = data;
+		CPU.reg_b = data;
 		break;
 	case 0xa:
-		reg_cc = data;
+		CPU.reg_cc = data;
 		break;
 	case 0xb:
-		reg_dp = data;
+		CPU.reg_dp = data;
 		break;
 	default:
 		printf ("illegal exgtfr reg %.1x\n", reg);
@@ -1091,20 +1053,25 @@ __inline void inst_tfr (void)
 
 void e6809_reset (void)
 {
-	reg_x = 0;
-	reg_y = 0;
-	reg_u = 0;
-	reg_s = 0;
+	CPU.reg_x = 0;
+	CPU.reg_y = 0;
+	CPU.reg_u = 0;
+	CPU.reg_s = 0;
 
-	reg_a = 0;
-	reg_b = 0;
+	CPU.reg_a = 0;
+	CPU.reg_b = 0;
 
-	reg_dp = 0;
+	CPU.reg_dp = 0;
 
-	reg_cc = FLAG_I | FLAG_F;
-	irq_status = IRQ_NORMAL;
+	CPU.reg_cc = FLAG_I | FLAG_F;
+	CPU.irq_status = IRQ_NORMAL;
 
-	reg_pc = read16 (0xfffe);
+	CPU.rptr_xyus[0] = &CPU.reg_x;
+	CPU.rptr_xyus[1] = &CPU.reg_y;
+	CPU.rptr_xyus[2] = &CPU.reg_u;
+	CPU.rptr_xyus[3] = &CPU.reg_s;
+
+	CPU.reg_pc = read16 (0xfffe);
 }
 
 /* execute a single instruction or handle interrupts and return */
@@ -1117,44 +1084,44 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 
 	if (irq_f) {
 		if (get_cc (FLAG_F) == 0) {
-			if (irq_status != IRQ_CWAI) {
+			if (CPU.irq_status != IRQ_CWAI) {
 				set_cc (FLAG_E, 0);
-				inst_psh (0x81, &reg_s, reg_u, &cycles);
+				inst_psh (0x81, &CPU.reg_s, CPU.reg_u, &cycles);
 			}
 
 			set_cc (FLAG_I, 1);
 			set_cc (FLAG_F, 1);
 
-			reg_pc = read16 (0xfff6);
-			irq_status = IRQ_NORMAL;
+			CPU.reg_pc = read16 (0xfff6);
+			CPU.irq_status = IRQ_NORMAL;
 			cycles += 7;
 		} else {
-			if (irq_status == IRQ_SYNC) {
-				irq_status = IRQ_NORMAL;
+			if (CPU.irq_status == IRQ_SYNC) {
+				CPU.irq_status = IRQ_NORMAL;
 			}
 		}
 	}
 
 	if (irq_i) {
 		if (get_cc (FLAG_I) == 0) {
-			if (irq_status != IRQ_CWAI) {
+			if (CPU.irq_status != IRQ_CWAI) {
 				set_cc (FLAG_E, 1);
-				inst_psh (0xff, &reg_s, reg_u, &cycles);
+				inst_psh (0xff, &CPU.reg_s, CPU.reg_u, &cycles);
 			}
 
 			set_cc (FLAG_I, 1);
 
-			reg_pc = read16 (0xfff8);
-			irq_status = IRQ_NORMAL;
+			CPU.reg_pc = read16 (0xfff8);
+			CPU.irq_status = IRQ_NORMAL;
 			cycles += 7;
 		} else {
-			if (irq_status == IRQ_SYNC) {
-				irq_status = IRQ_NORMAL;
+			if (CPU.irq_status == IRQ_SYNC) {
+				CPU.irq_status = IRQ_NORMAL;
 			}
 		}
 	}
 
-	if (irq_status != IRQ_NORMAL) {
+	if (CPU.irq_status != IRQ_NORMAL) {
 		return cycles + 1;
 	}
 
@@ -1171,11 +1138,11 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		cycles += 6;
 		break;
 	case 0x40:
-		reg_a = inst_neg (reg_a);
+		CPU.reg_a = inst_neg (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x50:
-		reg_b = inst_neg (reg_b);
+		CPU.reg_b = inst_neg (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x60:
@@ -1198,11 +1165,11 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		cycles += 6;
 		break;
 	case 0x43:
-		reg_a = inst_com (reg_a);
+		CPU.reg_a = inst_com (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x53:
-		reg_b = inst_com (reg_b);
+		CPU.reg_b = inst_com (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x63:
@@ -1225,11 +1192,11 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		cycles += 6;
 		break;
 	case 0x44:
-		reg_a = inst_lsr (reg_a);
+		CPU.reg_a = inst_lsr (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x54:
-		reg_b = inst_lsr (reg_b);
+		CPU.reg_b = inst_lsr (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x64:
@@ -1252,11 +1219,11 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		cycles += 6;
 		break;
 	case 0x46:
-		reg_a = inst_ror (reg_a);
+		CPU.reg_a = inst_ror (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x56:
-		reg_b = inst_ror (reg_b);
+		CPU.reg_b = inst_ror (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x66:
@@ -1279,11 +1246,11 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		cycles += 6;
 		break;
 	case 0x47:
-		reg_a = inst_asr (reg_a);
+		CPU.reg_a = inst_asr (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x57:
-		reg_b = inst_asr (reg_b);
+		CPU.reg_b = inst_asr (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x67:
@@ -1306,11 +1273,11 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		cycles += 6;
 		break;
 	case 0x48:
-		reg_a = inst_asl (reg_a);
+		CPU.reg_a = inst_asl (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x58:
-		reg_b = inst_asl (reg_b);
+		CPU.reg_b = inst_asl (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x68:
@@ -1333,11 +1300,11 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		cycles += 6;
 		break;
 	case 0x49:
-		reg_a = inst_rol (reg_a);
+		CPU.reg_a = inst_rol (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x59:
-		reg_b = inst_rol (reg_b);
+		CPU.reg_b = inst_rol (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x69:
@@ -1360,11 +1327,11 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		cycles += 6;
 		break;
 	case 0x4a:
-		reg_a = inst_dec (reg_a);
+		CPU.reg_a = inst_dec (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x5a:
-		reg_b = inst_dec (reg_b);
+		CPU.reg_b = inst_dec (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x6a:
@@ -1387,11 +1354,11 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		cycles += 6;
 		break;
 	case 0x4c:
-		reg_a = inst_inc (reg_a);
+		CPU.reg_a = inst_inc (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x5c:
-		reg_b = inst_inc (reg_b);
+		CPU.reg_b = inst_inc (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x6c:
@@ -1413,11 +1380,11 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		cycles += 6;
 		break;
 	case 0x4d:
-		inst_tst8 (reg_a);
+		inst_tst8 (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x5d:
-		inst_tst8 (reg_b);
+		inst_tst8 (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x6d:
@@ -1432,15 +1399,15 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		break;
 	/* jmp */
 	case 0x0e:
-		reg_pc = ea_direct ();
+		CPU.reg_pc = ea_direct ();
 		cycles += 3;
 		break;
 	case 0x6e:
-		reg_pc = ea_indexed (&cycles);
+		CPU.reg_pc = ea_indexed (&cycles);
 		cycles += 3;
 		break;
 	case 0x7e:
-		reg_pc = ea_extended ();
+		CPU.reg_pc = ea_extended ();
 		cycles += 4;
 		break;
 	/* clr */
@@ -1452,12 +1419,12 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		break;
 	case 0x4f:
 		inst_clr ();
-		reg_a = 0;
+		CPU.reg_a = 0;
 		cycles += 2;
 		break;
 	case 0x5f:
 		inst_clr ();
-		reg_b = 0;
+		CPU.reg_b = 0;
 		cycles += 2;
 		break;
 	case 0x6f:
@@ -1474,448 +1441,448 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		break;
 	/* suba */
 	case 0x80:
-		reg_a = inst_sub8 (reg_a, pc_read8 ());
+		CPU.reg_a = inst_sub8 (CPU.reg_a, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0x90:
 		ea = ea_direct ();
-		reg_a = inst_sub8 (reg_a, read8 (ea));
+		CPU.reg_a = inst_sub8 (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xa0:
 		ea = ea_indexed (&cycles);
-		reg_a = inst_sub8 (reg_a, read8 (ea));
+		CPU.reg_a = inst_sub8 (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xb0:
 		ea = ea_extended ();
-		reg_a = inst_sub8 (reg_a, read8 (ea));
+		CPU.reg_a = inst_sub8 (CPU.reg_a, read8 (ea));
 		cycles += 5;
 		break;
 	/* subb */
 	case 0xc0:
-		reg_b = inst_sub8 (reg_b, pc_read8 ());
+		CPU.reg_b = inst_sub8 (CPU.reg_b, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0xd0:
 		ea = ea_direct ();
-		reg_b = inst_sub8 (reg_b, read8 (ea));
+		CPU.reg_b = inst_sub8 (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xe0:
 		ea = ea_indexed (&cycles);
-		reg_b = inst_sub8 (reg_b, read8 (ea));
+		CPU.reg_b = inst_sub8 (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xf0:
 		ea = ea_extended ();
-		reg_b = inst_sub8 (reg_b, read8 (ea));
+		CPU.reg_b = inst_sub8 (CPU.reg_b, read8 (ea));
 		cycles += 5;
 		break;
 	/* cmpa */
 	case 0x81:
-		inst_sub8 (reg_a, pc_read8 ());
+		inst_sub8 (CPU.reg_a, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0x91:
 		ea = ea_direct ();
-		inst_sub8 (reg_a, read8 (ea));
+		inst_sub8 (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xa1:
 		ea = ea_indexed (&cycles);
-		inst_sub8 (reg_a, read8 (ea));
+		inst_sub8 (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xb1:
 		ea = ea_extended ();
-		inst_sub8 (reg_a, read8 (ea));
+		inst_sub8 (CPU.reg_a, read8 (ea));
 		cycles += 5;
 		break;
 	/* cmpb */
 	case 0xc1:
-		inst_sub8 (reg_b, pc_read8 ());
+		inst_sub8 (CPU.reg_b, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0xd1:
 		ea = ea_direct ();
-		inst_sub8 (reg_b, read8 (ea));
+		inst_sub8 (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xe1:
 		ea = ea_indexed (&cycles);
-		inst_sub8 (reg_b, read8 (ea));
+		inst_sub8 (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xf1:
 		ea = ea_extended ();
-		inst_sub8 (reg_b, read8 (ea));
+		inst_sub8 (CPU.reg_b, read8 (ea));
 		cycles += 5;
 		break;
 	/* sbca */
 	case 0x82:
-		reg_a = inst_sbc (reg_a, pc_read8 ());
+		CPU.reg_a = inst_sbc (CPU.reg_a, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0x92:
 		ea = ea_direct ();
-		reg_a = inst_sbc (reg_a, read8 (ea));
+		CPU.reg_a = inst_sbc (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xa2:
 		ea = ea_indexed (&cycles);
-		reg_a = inst_sbc (reg_a, read8 (ea));
+		CPU.reg_a = inst_sbc (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xb2:
 		ea = ea_extended ();
-		reg_a = inst_sbc (reg_a, read8 (ea));
+		CPU.reg_a = inst_sbc (CPU.reg_a, read8 (ea));
 		cycles += 5;
 		break;
 	/* sbcb */
 	case 0xc2:
-		reg_b = inst_sbc (reg_b, pc_read8 ());
+		CPU.reg_b = inst_sbc (CPU.reg_b, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0xd2:
 		ea = ea_direct ();
-		reg_b = inst_sbc (reg_b, read8 (ea));
+		CPU.reg_b = inst_sbc (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xe2:
 		ea = ea_indexed (&cycles);
-		reg_b = inst_sbc (reg_b, read8 (ea));
+		CPU.reg_b = inst_sbc (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xf2:
 		ea = ea_extended ();
-		reg_b = inst_sbc (reg_b, read8 (ea));
+		CPU.reg_b = inst_sbc (CPU.reg_b, read8 (ea));
 		cycles += 5;
 		break;
 	/* anda */
 	case 0x84:
-		reg_a = inst_and (reg_a, pc_read8 ());
+		CPU.reg_a = inst_and (CPU.reg_a, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0x94:
 		ea = ea_direct ();
-		reg_a = inst_and (reg_a, read8 (ea));
+		CPU.reg_a = inst_and (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xa4:
 		ea = ea_indexed (&cycles);
-		reg_a = inst_and (reg_a, read8 (ea));
+		CPU.reg_a = inst_and (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xb4:
 		ea = ea_extended ();
-		reg_a = inst_and (reg_a, read8 (ea));
+		CPU.reg_a = inst_and (CPU.reg_a, read8 (ea));
 		cycles += 5;
 		break;
 	/* andb */
 	case 0xc4:
-		reg_b = inst_and (reg_b, pc_read8 ());
+		CPU.reg_b = inst_and (CPU.reg_b, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0xd4:
 		ea = ea_direct ();
-		reg_b = inst_and (reg_b, read8 (ea));
+		CPU.reg_b = inst_and (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xe4:
 		ea = ea_indexed (&cycles);
-		reg_b = inst_and (reg_b, read8 (ea));
+		CPU.reg_b = inst_and (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xf4:
 		ea = ea_extended ();
-		reg_b = inst_and (reg_b, read8 (ea));
+		CPU.reg_b = inst_and (CPU.reg_b, read8 (ea));
 		cycles += 5;
 		break;
 	/* bita */
 	case 0x85:
-		inst_and (reg_a, pc_read8 ());
+		inst_and (CPU.reg_a, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0x95:
 		ea = ea_direct ();
-		inst_and (reg_a, read8 (ea));
+		inst_and (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xa5:
 		ea = ea_indexed (&cycles);
-		inst_and (reg_a, read8 (ea));
+		inst_and (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xb5:
 		ea = ea_extended ();
-		inst_and (reg_a, read8 (ea));
+		inst_and (CPU.reg_a, read8 (ea));
 		cycles += 5;
 		break;
 	/* bitb */
 	case 0xc5:
-		inst_and (reg_b, pc_read8 ());
+		inst_and (CPU.reg_b, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0xd5:
 		ea = ea_direct ();
-		inst_and (reg_b, read8 (ea));
+		inst_and (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xe5:
 		ea = ea_indexed (&cycles);
-		inst_and (reg_b, read8 (ea));
+		inst_and (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xf5:
 		ea = ea_extended ();
-		inst_and (reg_b, read8 (ea));
+		inst_and (CPU.reg_b, read8 (ea));
 		cycles += 5;
 		break;
 	/* lda */
 	case 0x86:
-		reg_a = pc_read8 ();
-		inst_tst8 (reg_a);
+		CPU.reg_a = pc_read8 ();
+		inst_tst8 (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x96:
 		ea = ea_direct ();
-		reg_a = read8 (ea);
-		inst_tst8 (reg_a);
+		CPU.reg_a = read8 (ea);
+		inst_tst8 (CPU.reg_a);
 		cycles += 4;
 		break;
 	case 0xa6:
 		ea = ea_indexed (&cycles);
-		reg_a = read8 (ea);
-		inst_tst8 (reg_a);
+		CPU.reg_a = read8 (ea);
+		inst_tst8 (CPU.reg_a);
 		cycles += 4;
 		break;
 	case 0xb6:
 		ea = ea_extended ();
-		reg_a = read8 (ea);
-		inst_tst8 (reg_a);
+		CPU.reg_a = read8 (ea);
+		inst_tst8 (CPU.reg_a);
 		cycles += 5;
 		break;
 	/* ldb */
 	case 0xc6:
-		reg_b = pc_read8 ();
-		inst_tst8 (reg_b);
+		CPU.reg_b = pc_read8 ();
+		inst_tst8 (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0xd6:
 		ea = ea_direct ();
-		reg_b = read8 (ea);
-		inst_tst8 (reg_b);
+		CPU.reg_b = read8 (ea);
+		inst_tst8 (CPU.reg_b);
 		cycles += 4;
 		break;
 	case 0xe6:
 		ea = ea_indexed (&cycles);
-		reg_b = read8 (ea);
-		inst_tst8 (reg_b);
+		CPU.reg_b = read8 (ea);
+		inst_tst8 (CPU.reg_b);
 		cycles += 4;
 		break;
 	case 0xf6:
 		ea = ea_extended ();
-		reg_b = read8 (ea);
-		inst_tst8 (reg_b);
+		CPU.reg_b = read8 (ea);
+		inst_tst8 (CPU.reg_b);
 		cycles += 5;
 		break;
 	/* sta */
 	case 0x97:
 		ea = ea_direct ();
-		write8 (ea, reg_a);
-		inst_tst8 (reg_a);
+		write8 (ea, CPU.reg_a);
+		inst_tst8 (CPU.reg_a);
 		cycles += 4;
 		break;
 	case 0xa7:
 		ea = ea_indexed (&cycles);
-		write8 (ea, reg_a);
-		inst_tst8 (reg_a);
+		write8 (ea, CPU.reg_a);
+		inst_tst8 (CPU.reg_a);
 		cycles += 4;
 		break;
 	case 0xb7:
 		ea = ea_extended ();
-		write8 (ea, reg_a);
-		inst_tst8 (reg_a);
+		write8 (ea, CPU.reg_a);
+		inst_tst8 (CPU.reg_a);
 		cycles += 5;
 		break;
 	/* stb */
 	case 0xd7:
 		ea = ea_direct ();
-		write8 (ea, reg_b);
-		inst_tst8 (reg_b);
+		write8 (ea, CPU.reg_b);
+		inst_tst8 (CPU.reg_b);
 		cycles += 4;
 		break;
 	case 0xe7:
 		ea = ea_indexed (&cycles);
-		write8 (ea, reg_b);
-		inst_tst8 (reg_b);
+		write8 (ea, CPU.reg_b);
+		inst_tst8 (CPU.reg_b);
 		cycles += 4;
 		break;
 	case 0xf7:
 		ea = ea_extended ();
-		write8 (ea, reg_b);
-		inst_tst8 (reg_b);
+		write8 (ea, CPU.reg_b);
+		inst_tst8 (CPU.reg_b);
 		cycles += 5;
 		break;
 	/* eora */
 	case 0x88:
-		reg_a = inst_eor (reg_a, pc_read8 ());
+		CPU.reg_a = inst_eor (CPU.reg_a, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0x98:
 		ea = ea_direct ();
-		reg_a = inst_eor (reg_a, read8 (ea));
+		CPU.reg_a = inst_eor (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xa8:
 		ea = ea_indexed (&cycles);
-		reg_a = inst_eor (reg_a, read8 (ea));
+		CPU.reg_a = inst_eor (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xb8:
 		ea = ea_extended ();
-		reg_a = inst_eor (reg_a, read8 (ea));
+		CPU.reg_a = inst_eor (CPU.reg_a, read8 (ea));
 		cycles += 5;
 		break;
 	/* eorb */
 	case 0xc8:
-		reg_b = inst_eor (reg_b, pc_read8 ());
+		CPU.reg_b = inst_eor (CPU.reg_b, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0xd8:
 		ea = ea_direct ();
-		reg_b = inst_eor (reg_b, read8 (ea));
+		CPU.reg_b = inst_eor (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xe8:
 		ea = ea_indexed (&cycles);
-		reg_b = inst_eor (reg_b, read8 (ea));
+		CPU.reg_b = inst_eor (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xf8:
 		ea = ea_extended ();
-		reg_b = inst_eor (reg_b, read8 (ea));
+		CPU.reg_b = inst_eor (CPU.reg_b, read8 (ea));
 		cycles += 5;
 		break;
 	/* adca */
 	case 0x89:
-		reg_a = inst_adc (reg_a, pc_read8 ());
+		CPU.reg_a = inst_adc (CPU.reg_a, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0x99:
 		ea = ea_direct ();
-		reg_a = inst_adc (reg_a, read8 (ea));
+		CPU.reg_a = inst_adc (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xa9:
 		ea = ea_indexed (&cycles);
-		reg_a = inst_adc (reg_a, read8 (ea));
+		CPU.reg_a = inst_adc (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xb9:
 		ea = ea_extended ();
-		reg_a = inst_adc (reg_a, read8 (ea));
+		CPU.reg_a = inst_adc (CPU.reg_a, read8 (ea));
 		cycles += 5;
 		break;
 	/* adcb */
 	case 0xc9:
-		reg_b = inst_adc (reg_b, pc_read8 ());
+		CPU.reg_b = inst_adc (CPU.reg_b, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0xd9:
 		ea = ea_direct ();
-		reg_b = inst_adc (reg_b, read8 (ea));
+		CPU.reg_b = inst_adc (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xe9:
 		ea = ea_indexed (&cycles);
-		reg_b = inst_adc (reg_b, read8 (ea));
+		CPU.reg_b = inst_adc (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xf9:
 		ea = ea_extended ();
-		reg_b = inst_adc (reg_b, read8 (ea));
+		CPU.reg_b = inst_adc (CPU.reg_b, read8 (ea));
 		cycles += 5;
 		break;
 	/* ora */
 	case 0x8a:
-		reg_a = inst_or (reg_a, pc_read8 ());
+		CPU.reg_a = inst_or (CPU.reg_a, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0x9a:
 		ea = ea_direct ();
-		reg_a = inst_or (reg_a, read8 (ea));
+		CPU.reg_a = inst_or (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xaa:
 		ea = ea_indexed (&cycles);
-		reg_a = inst_or (reg_a, read8 (ea));
+		CPU.reg_a = inst_or (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xba:
 		ea = ea_extended ();
-		reg_a = inst_or (reg_a, read8 (ea));
+		CPU.reg_a = inst_or (CPU.reg_a, read8 (ea));
 		cycles += 5;
 		break;
 	/* orb */
 	case 0xca:
-		reg_b = inst_or (reg_b, pc_read8 ());
+		CPU.reg_b = inst_or (CPU.reg_b, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0xda:
 		ea = ea_direct ();
-		reg_b = inst_or (reg_b, read8 (ea));
+		CPU.reg_b = inst_or (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xea:
 		ea = ea_indexed (&cycles);
-		reg_b = inst_or (reg_b, read8 (ea));
+		CPU.reg_b = inst_or (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xfa:
 		ea = ea_extended ();
-		reg_b = inst_or (reg_b, read8 (ea));
+		CPU.reg_b = inst_or (CPU.reg_b, read8 (ea));
 		cycles += 5;
 		break;
 	/* adda */
 	case 0x8b:
-		reg_a = inst_add8 (reg_a, pc_read8 ());
+		CPU.reg_a = inst_add8 (CPU.reg_a, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0x9b:
 		ea = ea_direct ();
-		reg_a = inst_add8 (reg_a, read8 (ea));
+		CPU.reg_a = inst_add8 (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xab:
 		ea = ea_indexed (&cycles);
-		reg_a = inst_add8 (reg_a, read8 (ea));
+		CPU.reg_a = inst_add8 (CPU.reg_a, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xbb:
 		ea = ea_extended ();
-		reg_a = inst_add8 (reg_a, read8 (ea));
+		CPU.reg_a = inst_add8 (CPU.reg_a, read8 (ea));
 		cycles += 5;
 		break;
 	/* addb */
 	case 0xcb:
-		reg_b = inst_add8 (reg_b, pc_read8 ());
+		CPU.reg_b = inst_add8 (CPU.reg_b, pc_read8 ());
 		cycles += 2;
 		break;
 	case 0xdb:
 		ea = ea_direct ();
-		reg_b = inst_add8 (reg_b, read8 (ea));
+		CPU.reg_b = inst_add8 (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xeb:
 		ea = ea_indexed (&cycles);
-		reg_b = inst_add8 (reg_b, read8 (ea));
+		CPU.reg_b = inst_add8 (CPU.reg_b, read8 (ea));
 		cycles += 4;
 		break;
 	case 0xfb:
 		ea = ea_extended ();
-		reg_b = inst_add8 (reg_b, read8 (ea));
+		CPU.reg_b = inst_add8 (CPU.reg_b, read8 (ea));
 		cycles += 5;
 		break;
 	/* subd */
@@ -1940,108 +1907,108 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		break;
 	/* cmpx */
 	case 0x8c:
-		inst_sub16 (reg_x, pc_read16 ());
+		inst_sub16 (CPU.reg_x, pc_read16 ());
 		cycles += 4;
 		break;
 	case 0x9c:
 		ea = ea_direct ();
-		inst_sub16 (reg_x, read16 (ea));
+		inst_sub16 (CPU.reg_x, read16 (ea));
 		cycles += 6;
 		break;
 	case 0xac:
 		ea = ea_indexed (&cycles);
-		inst_sub16 (reg_x, read16 (ea));
+		inst_sub16 (CPU.reg_x, read16 (ea));
 		cycles += 6;
 		break;
 	case 0xbc:
 		ea = ea_extended ();
-		inst_sub16 (reg_x, read16 (ea));
+		inst_sub16 (CPU.reg_x, read16 (ea));
 		cycles += 7;
 		break;
 	/* ldx */
 	case 0x8e:
-		reg_x = pc_read16 ();
-		inst_tst16 (reg_x);
+		CPU.reg_x = pc_read16 ();
+		inst_tst16 (CPU.reg_x);
 		cycles += 3;
 		break;
 	case 0x9e:
 		ea = ea_direct ();
-		reg_x = read16 (ea);
-		inst_tst16 (reg_x);
+		CPU.reg_x = read16 (ea);
+		inst_tst16 (CPU.reg_x);
 		cycles += 5;
 		break;
 	case 0xae:
 		ea = ea_indexed (&cycles);
-		reg_x = read16 (ea);
-		inst_tst16 (reg_x);
+		CPU.reg_x = read16 (ea);
+		inst_tst16 (CPU.reg_x);
 		cycles += 5;
 		break;
 	case 0xbe:
 		ea = ea_extended ();
-		reg_x = read16 (ea);
-		inst_tst16 (reg_x);
+		CPU.reg_x = read16 (ea);
+		inst_tst16 (CPU.reg_x);
 		cycles += 6;
 		break;
 	/* ldu */
 	case 0xce:
-		reg_u = pc_read16 ();
-		inst_tst16 (reg_u);
+		CPU.reg_u = pc_read16 ();
+		inst_tst16 (CPU.reg_u);
 		cycles += 3;
 		break;
 	case 0xde:
 		ea = ea_direct ();
-		reg_u = read16 (ea);
-		inst_tst16 (reg_u);
+		CPU.reg_u = read16 (ea);
+		inst_tst16 (CPU.reg_u);
 		cycles += 5;
 		break;
 	case 0xee:
 		ea = ea_indexed (&cycles);
-		reg_u = read16 (ea);
-		inst_tst16 (reg_u);
+		CPU.reg_u = read16 (ea);
+		inst_tst16 (CPU.reg_u);
 		cycles += 5;
 		break;
 	case 0xfe:
 		ea = ea_extended ();
-		reg_u = read16 (ea);
-		inst_tst16 (reg_u);
+		CPU.reg_u = read16 (ea);
+		inst_tst16 (CPU.reg_u);
 		cycles += 6;
 		break;
 	/* stx */
 	case 0x9f:
 		ea = ea_direct ();
-		write16 (ea, reg_x);
-		inst_tst16 (reg_x);
+		write16 (ea, CPU.reg_x);
+		inst_tst16 (CPU.reg_x);
 		cycles += 5;
 		break;
 	case 0xaf:
 		ea = ea_indexed (&cycles);
-		write16 (ea, reg_x);
-		inst_tst16 (reg_x);
+		write16 (ea, CPU.reg_x);
+		inst_tst16 (CPU.reg_x);
 		cycles += 5;
 		break;
 	case 0xbf:
 		ea = ea_extended ();
-		write16 (ea, reg_x);
-		inst_tst16 (reg_x);
+		write16 (ea, CPU.reg_x);
+		inst_tst16 (CPU.reg_x);
 		cycles += 6;
 		break;
 	/* stu */
 	case 0xdf:
 		ea = ea_direct ();
-		write16 (ea, reg_u);
-		inst_tst16 (reg_u);
+		write16 (ea, CPU.reg_u);
+		inst_tst16 (CPU.reg_u);
 		cycles += 5;
 		break;
 	case 0xef:
 		ea = ea_indexed (&cycles);
-		write16 (ea, reg_u);
-		inst_tst16 (reg_u);
+		write16 (ea, CPU.reg_u);
+		inst_tst16 (CPU.reg_u);
 		cycles += 5;
 		break;
 	case 0xff:
 		ea = ea_extended ();
-		write16 (ea, reg_u);
-		inst_tst16 (reg_u);
+		write16 (ea, CPU.reg_u);
+		inst_tst16 (CPU.reg_u);
 		cycles += 6;
 		break;
 	/* addd */
@@ -2113,7 +2080,7 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		break;
 	/* mul */
 	case 0x3d:
-		r = (reg_a & 0xff) * (reg_b & 0xff);
+		r = (CPU.reg_a & 0xff) * (CPU.reg_b & 0xff);
 		set_reg_d (r);
 
 		set_cc (FLAG_Z, test_z16 (r));
@@ -2173,108 +2140,108 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 	/* lbra */
 	case 0x16:
 		r = pc_read16 ();
-		reg_pc += r;
+		CPU.reg_pc += r;
 		cycles += 5;
 		break;
 	/* lbsr */
 	case 0x17:
 		r = pc_read16 ();
-		push16 (&reg_s, reg_pc);
-		reg_pc += r;
+		push16 (&CPU.reg_s, CPU.reg_pc);
+		CPU.reg_pc += r;
 		cycles += 9;
 		break;
 	/* bsr */
 	case 0x8d:
 		r = pc_read8 ();
-		push16 (&reg_s, reg_pc);
-		reg_pc += sign_extend (r);
+		push16 (&CPU.reg_s, CPU.reg_pc);
+		CPU.reg_pc += sign_extend (r);
 		cycles += 7;
 		break;
 	/* jsr */
 	case 0x9d:
 		ea = ea_direct ();
-		push16 (&reg_s, reg_pc);
-		reg_pc = ea;
+		push16 (&CPU.reg_s, CPU.reg_pc);
+		CPU.reg_pc = ea;
 		cycles += 7;
 		break;
 	case 0xad:
 		ea = ea_indexed (&cycles);
-		push16 (&reg_s, reg_pc);
-		reg_pc = ea;
+		push16 (&CPU.reg_s, CPU.reg_pc);
+		CPU.reg_pc = ea;
 		cycles += 7;
 		break;
 	case 0xbd:
 		ea = ea_extended ();
-		push16 (&reg_s, reg_pc);
-		reg_pc = ea;
+		push16 (&CPU.reg_s, CPU.reg_pc);
+		CPU.reg_pc = ea;
 		cycles += 8;
 		break;
 	/* leax */
 	case 0x30:
-		reg_x = ea_indexed (&cycles);
-		set_cc (FLAG_Z, test_z16 (reg_x));
+		CPU.reg_x = ea_indexed (&cycles);
+		set_cc (FLAG_Z, test_z16 (CPU.reg_x));
 		cycles += 4;
 		break;
 	/* leay */
 	case 0x31:
-		reg_y = ea_indexed (&cycles);
-		set_cc (FLAG_Z, test_z16 (reg_y));
+		CPU.reg_y = ea_indexed (&cycles);
+		set_cc (FLAG_Z, test_z16 (CPU.reg_y));
 		cycles += 4;
 		break;
 	/* leas */
 	case 0x32:
-		reg_s = ea_indexed (&cycles);
+		CPU.reg_s = ea_indexed (&cycles);
 		cycles += 4;
 		break;
 	/* leau */
 	case 0x33:
-		reg_u = ea_indexed (&cycles);
+		CPU.reg_u = ea_indexed (&cycles);
 		cycles += 4;
 		break;
 	/* pshs */
 	case 0x34:
-		inst_psh (pc_read8 (), &reg_s, reg_u, &cycles);
+		inst_psh (pc_read8 (), &CPU.reg_s, CPU.reg_u, &cycles);
 		cycles += 5;
 		break;
 	/* puls */
 	case 0x35:
-		inst_pul (pc_read8 (), &reg_s, &reg_u, &cycles);
+		inst_pul (pc_read8 (), &CPU.reg_s, &CPU.reg_u, &cycles);
 		cycles += 5;
 		break;
 	/* pshu */
 	case 0x36:
-		inst_psh (pc_read8 (), &reg_u, reg_s, &cycles);
+		inst_psh (pc_read8 (), &CPU.reg_u, CPU.reg_s, &cycles);
 		cycles += 5;
 		break;
 	/* pulu */
 	case 0x37:
-		inst_pul (pc_read8 (), &reg_u, &reg_s, &cycles);
+		inst_pul (pc_read8 (), &CPU.reg_u, &CPU.reg_s, &cycles);
 		cycles += 5;
 		break;
 	/* rts */
 	case 0x39:
-		reg_pc = pull16 (&reg_s);
+		CPU.reg_pc = pull16 (&CPU.reg_s);
 		cycles += 5;
 		break;
 	/* abx */
 	case 0x3a:
-		reg_x += reg_b & 0xff;
+		CPU.reg_x += CPU.reg_b & 0xff;
 		cycles += 3;
 		break;
 	/* orcc */
 	case 0x1a:
-		reg_cc |= pc_read8 ();
+		CPU.reg_cc |= pc_read8 ();
 		cycles += 3;
 		break;
 	/* andcc */
 	case 0x1c:
-		reg_cc &= pc_read8 ();
+		CPU.reg_cc &= pc_read8 ();
 		cycles += 3;
 		break;
 	/* sex */
 	case 0x1d:
-		set_reg_d (sign_extend (reg_b));
-		set_cc (FLAG_N, test_n (reg_a));
+		set_reg_d (sign_extend (CPU.reg_b));
+		set_cc (FLAG_N, test_n (CPU.reg_a));
 		set_cc (FLAG_Z, test_z16 (get_reg_d ()));
 		cycles += 2;
 		break;
@@ -2291,9 +2258,9 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 	/* rti */
 	case 0x3b:
 		if (get_cc (FLAG_E)) {
-			inst_pul (0xff, &reg_s, &reg_u, &cycles);
+			inst_pul (0xff, &CPU.reg_s, &CPU.reg_u, &cycles);
 		} else {
-			inst_pul (0x81, &reg_s, &reg_u, &cycles);
+			inst_pul (0x81, &CPU.reg_s, &CPU.reg_u, &cycles);
 		}
 
 		cycles += 3;
@@ -2301,48 +2268,48 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 	/* swi */
 	case 0x3f:
 		set_cc (FLAG_E, 1);
-		inst_psh (0xff, &reg_s, reg_u, &cycles);
+		inst_psh (0xff, &CPU.reg_s, CPU.reg_u, &cycles);
 		set_cc (FLAG_I, 1);
 		set_cc (FLAG_F, 1);
-        reg_pc = read16 (0xfffa);
+        CPU.reg_pc = read16 (0xfffa);
         cycles += 7;
 		break;
 	/* sync */
 	case 0x13:
-		irq_status = IRQ_SYNC;
+		CPU.irq_status = IRQ_SYNC;
 		cycles += 2;
 		break;
 	/* daa */
 	case 0x19:
-		i0 = reg_a;
+		i0 = CPU.reg_a;
 		i1 = 0;
 
-		if ((reg_a & 0x0f) > 0x09 || get_cc (FLAG_H) == 1) {
+		if ((CPU.reg_a & 0x0f) > 0x09 || get_cc (FLAG_H) == 1) {
 			i1 |= 0x06;
 		}
 
-		if ((reg_a & 0xf0) > 0x80 && (reg_a & 0x0f) > 0x09) {
+		if ((CPU.reg_a & 0xf0) > 0x80 && (CPU.reg_a & 0x0f) > 0x09) {
 			i1 |= 0x60;
 		}
 
-		if ((reg_a & 0xf0) > 0x90 || get_cc (FLAG_C) == 1) {
+		if ((CPU.reg_a & 0xf0) > 0x90 || get_cc (FLAG_C) == 1) {
 			i1 |= 0x60;
 		}
 
-		reg_a = i0 + i1;
+		CPU.reg_a = i0 + i1;
 
-		set_cc (FLAG_N, test_n (reg_a));
-		set_cc (FLAG_Z, test_z8 (reg_a));
+		set_cc (FLAG_N, test_n (CPU.reg_a));
+		set_cc (FLAG_Z, test_z8 (CPU.reg_a));
 		set_cc (FLAG_V, 0);
-		set_cc (FLAG_C, test_c (i0, i1, reg_a, 0));
+		set_cc (FLAG_C, test_c (i0, i1, CPU.reg_a, 0));
 		cycles += 2;
 		break;
 	/* cwai */
 	case 0x3c:
-		reg_cc &= pc_read8 ();
+		CPU.reg_cc &= pc_read8 ();
 		set_cc (FLAG_E, 1);
-		inst_psh (0xff, &reg_s, reg_u, &cycles);
-		irq_status = IRQ_CWAI;
+		inst_psh (0xff, &CPU.reg_s, CPU.reg_u, &cycles);
+		CPU.irq_status = IRQ_CWAI;
 		cycles += 4;
 		break;
 
@@ -2423,115 +2390,115 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 			break;
 		/* cmpy */
 		case 0x8c:
-			inst_sub16 (reg_y, pc_read16 ());
+			inst_sub16 (CPU.reg_y, pc_read16 ());
 			cycles += 5;
 			break;
 		case 0x9c:
 			ea = ea_direct ();
-			inst_sub16 (reg_y, read16 (ea));
+			inst_sub16 (CPU.reg_y, read16 (ea));
 			cycles += 7;
 			break;
 		case 0xac:
 			ea = ea_indexed (&cycles);
-			inst_sub16 (reg_y, read16 (ea));
+			inst_sub16 (CPU.reg_y, read16 (ea));
 			cycles += 7;
 			break;
 		case 0xbc:
 			ea = ea_extended ();
-			inst_sub16 (reg_y, read16 (ea));
+			inst_sub16 (CPU.reg_y, read16 (ea));
 			cycles += 8;
 			break;
 		/* ldy */
 		case 0x8e:
-			reg_y = pc_read16 ();
-			inst_tst16 (reg_y);
+			CPU.reg_y = pc_read16 ();
+			inst_tst16 (CPU.reg_y);
 			cycles += 4;
 			break;
 		case 0x9e:
 			ea = ea_direct ();
-			reg_y = read16 (ea);
-			inst_tst16 (reg_y);
+			CPU.reg_y = read16 (ea);
+			inst_tst16 (CPU.reg_y);
 			cycles += 6;
 			break;
 		case 0xae:
 			ea = ea_indexed (&cycles);
-			reg_y = read16 (ea);
-			inst_tst16 (reg_y);
+			CPU.reg_y = read16 (ea);
+			inst_tst16 (CPU.reg_y);
 			cycles += 6;
 			break;
 		case 0xbe:
 			ea = ea_extended ();
-			reg_y = read16 (ea);
-			inst_tst16 (reg_y);
+			CPU.reg_y = read16 (ea);
+			inst_tst16 (CPU.reg_y);
 			cycles += 7;
 			break;
 		/* sty */
 		case 0x9f:
 			ea = ea_direct ();
-			write16 (ea, reg_y);
-			inst_tst16 (reg_y);
+			write16 (ea, CPU.reg_y);
+			inst_tst16 (CPU.reg_y);
 			cycles += 6;
 			break;
 		case 0xaf:
 			ea = ea_indexed (&cycles);
-			write16 (ea, reg_y);
-			inst_tst16 (reg_y);
+			write16 (ea, CPU.reg_y);
+			inst_tst16 (CPU.reg_y);
 			cycles += 6;
 			break;
 		case 0xbf:
 			ea = ea_extended ();
-			write16 (ea, reg_y);
-			inst_tst16 (reg_y);
+			write16 (ea, CPU.reg_y);
+			inst_tst16 (CPU.reg_y);
 			cycles += 7;
 			break;
 		/* lds */
 		case 0xce:
-			reg_s = pc_read16 ();
-			inst_tst16 (reg_s);
+			CPU.reg_s = pc_read16 ();
+			inst_tst16 (CPU.reg_s);
 			cycles += 4;
 			break;
 		case 0xde:
 			ea = ea_direct ();
-			reg_s = read16 (ea);
-			inst_tst16 (reg_s);
+			CPU.reg_s = read16 (ea);
+			inst_tst16 (CPU.reg_s);
 			cycles += 6;
 			break;
 		case 0xee:
 			ea = ea_indexed (&cycles);
-			reg_s = read16 (ea);
-			inst_tst16 (reg_s);
+			CPU.reg_s = read16 (ea);
+			inst_tst16 (CPU.reg_s);
 			cycles += 6;
 			break;
 		case 0xfe:
 			ea = ea_extended ();
-			reg_s = read16 (ea);
-			inst_tst16 (reg_s);
+			CPU.reg_s = read16 (ea);
+			inst_tst16 (CPU.reg_s);
 			cycles += 7;
 			break;
 		/* sts */
 		case 0xdf:
 			ea = ea_direct ();
-			write16 (ea, reg_s);
-			inst_tst16 (reg_s);
+			write16 (ea, CPU.reg_s);
+			inst_tst16 (CPU.reg_s);
 			cycles += 6;
 			break;
 		case 0xef:
 			ea = ea_indexed (&cycles);
-			write16 (ea, reg_s);
-			inst_tst16 (reg_s);
+			write16 (ea, CPU.reg_s);
+			inst_tst16 (CPU.reg_s);
 			cycles += 6;
 			break;
 		case 0xff:
 			ea = ea_extended ();
-			write16 (ea, reg_s);
-			inst_tst16 (reg_s);
+			write16 (ea, CPU.reg_s);
+			inst_tst16 (CPU.reg_s);
 			cycles += 7;
 			break;
 		/* swi2 */
 		case 0x3f:
 			set_cc (FLAG_E, 1);
-			inst_psh (0xff, &reg_s, reg_u, &cycles);
-		    reg_pc = read16 (0xfff4);
+			inst_psh (0xff, &CPU.reg_s, CPU.reg_u, &cycles);
+		    CPU.reg_pc = read16 (0xfff4);
 			cycles += 8;
 			break;
 		default:
@@ -2549,49 +2516,49 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		switch (op) {
 		/* cmpu */
 		case 0x83:
-			inst_sub16 (reg_u, pc_read16 ());
+			inst_sub16 (CPU.reg_u, pc_read16 ());
 			cycles += 5;
 			break;
 		case 0x93:
 			ea = ea_direct ();
-			inst_sub16 (reg_u, read16 (ea));
+			inst_sub16 (CPU.reg_u, read16 (ea));
 			cycles += 7;
 			break;
 		case 0xa3:
 			ea = ea_indexed (&cycles);
-			inst_sub16 (reg_u, read16 (ea));
+			inst_sub16 (CPU.reg_u, read16 (ea));
 			cycles += 7;
 			break;
 		case 0xb3:
 			ea = ea_extended ();
-			inst_sub16 (reg_u, read16 (ea));
+			inst_sub16 (CPU.reg_u, read16 (ea));
 			cycles += 8;
 			break;
 		/* cmps */
 		case 0x8c:
-			inst_sub16 (reg_s, pc_read16 ());
+			inst_sub16 (CPU.reg_s, pc_read16 ());
 			cycles += 5;
 			break;
 		case 0x9c:
 			ea = ea_direct ();
-			inst_sub16 (reg_s, read16 (ea));
+			inst_sub16 (CPU.reg_s, read16 (ea));
 			cycles += 7;
 			break;
 		case 0xac:
 			ea = ea_indexed (&cycles);
-			inst_sub16 (reg_s, read16 (ea));
+			inst_sub16 (CPU.reg_s, read16 (ea));
 			cycles += 7;
 			break;
 		case 0xbc:
 			ea = ea_extended ();
-			inst_sub16 (reg_s, read16 (ea));
+			inst_sub16 (CPU.reg_s, read16 (ea));
 			cycles += 8;
 			break;
 		/* swi3 */
 		case 0x3f:
 			set_cc (FLAG_E, 1);
-			inst_psh (0xff, &reg_s, reg_u, &cycles);
-		    reg_pc = read16 (0xfff2);
+			inst_psh (0xff, &CPU.reg_s, CPU.reg_u, &cycles);
+		    CPU.reg_pc = read16 (0xfff2);
 			cycles += 8;
 			break;
 		default:

@@ -22,21 +22,7 @@
 #define STEP2 length
 #define STEP  2
 
-struct AY8910 {
-	int ready;
-	uint8_t *Regs;
-	int32_t lastEnable;
-	int32_t PeriodA, PeriodB, PeriodC, PeriodN, PeriodE;
-	int32_t CountA, CountB, CountC, CountN, CountE;
-	uint32_t VolA, VolB, VolC, VolE;
-	uint8_t EnvelopeA, EnvelopeB, EnvelopeC;
-	uint8_t OutputA, OutputB, OutputC, OutputN;
-	int8_t CountEnv;
-	uint8_t Hold, Alternate, Attack, Holding;
-	int32_t RNG;
-	uint32_t VolTable[32];
-
-} PSG;
+AY8910 PSG;
 
 enum {
 	SOUND_FREQ		= 22050,
