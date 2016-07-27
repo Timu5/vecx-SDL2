@@ -49,22 +49,24 @@ void osint_render (void) {
 static char *biosfilename = "bios.bin";
 static char *cartfilename = NULL;
 
-static void osint_init (void) {
+static void osint_load_bios(void) {
 	FILE *f;
-	if (! (f = fopen (biosfilename, "rb") ) ) {
+	if (!(f = fopen (biosfilename, "rb"))) {
 		perror (biosfilename);
 		exit (EXIT_FAILURE);
 	}
-	if (fread (rom, 1, sizeof (rom), f) != sizeof (rom)){
-		fprintf (stderr, "Invalid rom length\n");
+	if (fread(rom, 1, sizeof (rom), f) != sizeof (rom)){
+		fprintf (stderr, "Invalid bios length\n");
 		exit (EXIT_FAILURE);
 	}
 	fclose (f);
+}
 
+static void osint_load_cart (void) {
+	FILE *f;
 	memset (cart, 0, sizeof (cart));
 	if (cartfilename) {
-		FILE *f;
-		if (! (f = fopen (cartfilename, "rb") ) ) {
+		if (!(f = fopen (cartfilename, "rb"))) {
 			perror (cartfilename);
 			exit (EXIT_FAILURE);
 		}
@@ -89,8 +91,8 @@ static void osint_resize (void) {
 
 static int osint_readevents (void) {
 	SDL_Event e;
-	while (SDL_PollEvent (&e) ) {
-		switch (e.type){
+	while (SDL_PollEvent (&e)) {
+		switch (e.type) {
 			case SDL_QUIT:
 				return 1;
 				break;
@@ -100,8 +102,8 @@ static int osint_readevents (void) {
 				break;
 			case SDL_DROPFILE:
 				cartfilename = e.drop.file;
-				osint_init();
-				vecx_reset();
+				osint_load_cart ();
+				vecx_reset ();
 				break;
 			case SDL_KEYDOWN:
 				switch (e.key.keysym.sym) {
@@ -221,14 +223,14 @@ int main (int argc, char *argv[]) {
 		exit (EXIT_FAILURE);
 	}
 
-	osint_resize ();
-
 	if (argc > 1)
 		cartfilename = argv[1];
 	if (argc > 2)
 		osint_load_overlay (argv[2]);
 
-	osint_init ();
+	osint_resize();
+	osint_load_bios();
+	osint_load_cart();
 	e8910_init_sound ();
 
 	osint_emuloop ();
