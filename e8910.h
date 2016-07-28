@@ -2,7 +2,7 @@
 #define __E8910_H
 
 typedef struct {
-	int ready;
+	uint8_t ready;
 	uint8_t *Regs;
 	int32_t lastEnable;
 	int32_t PeriodA, PeriodB, PeriodC, PeriodN, PeriodE;

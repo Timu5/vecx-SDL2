@@ -50,6 +50,7 @@ typedef struct {
 
 extern uint8_t rom[8192];
 extern uint8_t cart[32768];
+extern uint8_t ram[1024];
 
 extern VIA6522 VIA;
 
