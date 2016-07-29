@@ -76,10 +76,10 @@ static void osint_load_cart (void) {
 	}
 }
 
-static void osint_load_state (void) {
+static void osint_load_state (char *name) {
 	FILE *f;
-	if (!(f = fopen("save.bin", "rb"))) {
-		perror("save.bin");
+	if (!(f = fopen(name, "rb"))) {
+		perror(name);
 		return;
 	}
 
@@ -110,10 +110,10 @@ static void osint_load_state (void) {
 	fclose(f);
 }
 
-static void osint_save_state(void) {
+static void osint_save_state(char *name) {
 	FILE *f;
-	if (!(f = fopen("save.bin", "wb"))) {
-		perror("save.bin");
+	if (!(f = fopen(name, "wb"))) {
+		perror(name);
 		return;
 	}
 
@@ -209,10 +209,28 @@ static int osint_readevents (void) {
 			case SDL_KEYUP:
 				switch (e.key.keysym.sym) {
 					case SDLK_F1:
-						osint_save_state();
+						osint_load_state("q1.save");
+						break;
+					case SDLK_F2:
+						osint_load_state("q2.save");
+						break;
+					case SDLK_F3:
+						osint_load_state("q3.save");
+						break;
+					case SDLK_F4:
+						osint_load_state("q4.save");
 						break;
 					case SDLK_F5:
-						osint_load_state();
+						osint_save_state("q1.save");
+						break;
+					case SDLK_F6:
+						osint_save_state("q2.save");
+						break;
+					case SDLK_F7:
+						osint_save_state("q3.save");
+						break;
+					case SDLK_F8:
+						osint_save_state("q4.save");
 						break;
 					case SDLK_a:
 						snd_regs[14] |= 0x01;
