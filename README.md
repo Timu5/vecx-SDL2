@@ -11,7 +11,14 @@ Requirements
 Usage
 -----
 
-vecx [rom_file] [overlay_file]
+vecx [cart_file] [overlay_file]
+
+KEY     | ACTION
+------- | ------
+a,s,d,f | buttons
+arrows  | joystick
+F1-F4   | quick load
+F5-F8   | quick save
 
 Authors
 -------
