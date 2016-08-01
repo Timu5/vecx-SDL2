@@ -110,7 +110,7 @@ static void osint_load_state (char *name) {
 	fclose(f);
 }
 
-static void osint_save_state(char *name) {
+static void osint_save_state (char *name) {
 	FILE *f;
 	if (!(f = fopen(name, "wb"))) {
 		perror(name);
@@ -209,28 +209,32 @@ static int osint_readevents (void) {
 			case SDL_KEYUP:
 				switch (e.key.keysym.sym) {
 					case SDLK_F1:
-						osint_load_state("q1.save");
+						osint_load_state ("q1.save");
 						break;
 					case SDLK_F2:
-						osint_load_state("q2.save");
+						osint_load_state ("q2.save");
 						break;
 					case SDLK_F3:
-						osint_load_state("q3.save");
+						osint_load_state ("q3.save");
 						break;
 					case SDLK_F4:
-						osint_load_state("q4.save");
+						osint_load_state ("q4.save");
 						break;
 					case SDLK_F5:
-						osint_save_state("q1.save");
+						osint_save_state ("q1.save");
 						break;
 					case SDLK_F6:
-						osint_save_state("q2.save");
+						osint_save_state ("q2.save");
 						break;
 					case SDLK_F7:
-						osint_save_state("q3.save");
+						osint_save_state ("q3.save");
 						break;
 					case SDLK_F8:
-						osint_save_state("q4.save");
+						osint_save_state ("q4.save");
+						break;
+					case SDLK_r:
+						osint_load_cart();
+						vecx_reset ();
 						break;
 					case SDLK_a:
 						snd_regs[14] |= 0x01;
