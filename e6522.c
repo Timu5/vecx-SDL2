@@ -31,11 +31,11 @@ uint8_t via_read (uint16_t address)
 			if (VIA.acr & 0x80) {
 				/* timer 1 has control of bit 7 */
 
-				data = (unsigned char) ((VIA.orb & 0x5f) | VIA.t1pb7 | alg_compare);
+				data = (uint8_t) ((VIA.orb & 0x5f) | VIA.t1pb7 | alg_compare);
 			} else {
 				/* bit 7 is being driven by VIA.orb */
 
-				data = (unsigned char) ((VIA.orb & 0xdf) | alg_compare);
+				data = (uint8_t) ((VIA.orb & 0xdf) | alg_compare);
 			}
 
 			break;
@@ -56,22 +56,22 @@ uint8_t via_read (uint16_t address)
 			if ((VIA.orb & 0x18) == 0x08) {
 				/* the snd chip is driving port a */
 
-				data = (unsigned char) snd_regs[snd_select];
+				data = (uint8_t) snd_regs[snd_select];
 			} else {
-				data = (unsigned char) VIA.ora;
+				data = (uint8_t) VIA.ora;
 			}
 
 			break;
 		case 0x2:
-			data = (unsigned char) VIA.ddrb;
+			data = (uint8_t) VIA.ddrb;
 			break;
 		case 0x3:
-			data = (unsigned char) VIA.ddra;
+			data = (uint8_t) VIA.ddra;
 			break;
 		case 0x4:
 			/* T1 low order counter */
 
-			data = (unsigned char) VIA.t1c;
+			data = (uint8_t) VIA.t1c;
 			VIA.ifr &= 0xbf; /* remove timer 1 interrupt flag */
 
 			VIA.t1on = 0; /* timer 1 is stopped */
@@ -84,23 +84,23 @@ uint8_t via_read (uint16_t address)
 		case 0x5:
 			/* T1 high order counter */
 
-			data = (unsigned char) (VIA.t1c >> 8);
+			data = (uint8_t) (VIA.t1c >> 8);
 
 			break;
 		case 0x6:
 			/* T1 low order latch */
 
-			data = (unsigned char) VIA.t1ll;
+			data = (uint8_t) VIA.t1ll;
 			break;
 		case 0x7:
 			/* T1 high order latch */
 
-			data = (unsigned char) VIA.t1lh;
+			data = (uint8_t) VIA.t1lh;
 			break;
 		case 0x8:
 			/* T2 low order counter */
 
-			data = (unsigned char) VIA.t2c;
+			data = (uint8_t) VIA.t2c;
 			VIA.ifr &= 0xdf; /* remove timer 2 interrupt flag */
 
 			VIA.t2on = 0; /* timer 2 is stopped */
@@ -112,10 +112,10 @@ uint8_t via_read (uint16_t address)
 		case 0x9:
 			/* T2 high order counter */
 
-			data = (unsigned char) (VIA.t2c >> 8);
+			data = (uint8_t) (VIA.t2c >> 8);
 			break;
 		case 0xa:
-			data = (unsigned char) VIA.sr;
+			data = (uint8_t) VIA.sr;
 			VIA.ifr &= 0xfb; /* remove shift register interrupt flag */
 			VIA.srb = 0;
 			VIA.srclk = 1;
@@ -124,20 +124,20 @@ uint8_t via_read (uint16_t address)
 
 			break;
 		case 0xb:
-			data = (unsigned char) VIA.acr;
+			data = (uint8_t) VIA.acr;
 			break;
 		case 0xc:
-			data = (unsigned char) VIA.pcr;
+			data = (uint8_t) VIA.pcr;
 			break;
 		case 0xd:
 			/* interrupt flag register */
 
-			data = (unsigned char) VIA.ifr;
+			data = (uint8_t) VIA.ifr;
 			break;
 		case 0xe:
 			/* interrupt enable register */
 
-			data = (unsigned char) (VIA.ier | 0x80);
+			data = (uint8_t) (VIA.ier | 0x80);
 			break;
 	}
 	return data;
