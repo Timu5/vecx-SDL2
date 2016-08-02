@@ -77,6 +77,7 @@ static void osint_load_cart (void) {
 }
 
 static void osint_load_state (char *name) {
+	int i;
 	FILE *f;
 	if (!(f = fopen(name, "rb"))) {
 		perror(name);
@@ -85,12 +86,12 @@ static void osint_load_state (char *name) {
 
 	void *cpu[] = { &CPU.reg_x, &CPU.reg_y, &CPU.reg_u, &CPU.reg_s, &CPU.reg_pc, &CPU.reg_a, &CPU.reg_b, &CPU.reg_dp, &CPU.reg_cc, &CPU.irq_status };
 
-	for (int i = 0; i < sizeof(cpu) / sizeof(cpu[0]); i++)
+	for (i = 0; i < sizeof(cpu) / sizeof(cpu[0]); i++)
 		fread(cpu[i], sizeof(uint16_t), 1, f);
 
 	void *via[] = { &VIA.ora, &VIA.orb, &VIA.ddra, &VIA.ddrb, &VIA.t1on, &VIA.t1int, &VIA.t1ll, &VIA.t1lh, &VIA.t1pb7, &VIA.t2on, &VIA.t2int, &VIA.t2ll, &VIA.sr, &VIA.srb, &VIA.src, &VIA.srclk, &VIA.acr, &VIA.pcr, &VIA.ifr, &VIA.ier, &VIA.ca2, &VIA.cb2h, &VIA.cb2s };
 
-	for (int i = 0; i < sizeof(via) / sizeof(via[0]); i++)
+	for (i = 0; i < sizeof(via) / sizeof(via[0]); i++)
 		fread(via[i], sizeof(uint8_t), 1, f);
 	fread(&VIA.t1c, sizeof(uint16_t), 1, f);
 	fread(&VIA.t2c, sizeof(uint16_t), 1, f);
@@ -98,9 +99,9 @@ static void osint_load_state (char *name) {
 	void *psg0[] = { &PSG.ready, &PSG.EnvelopeA, &PSG.EnvelopeB, &PSG.EnvelopeC, &PSG.OutputA, &PSG.OutputB, &PSG.OutputC, &PSG.OutputN, &PSG.CountEnv, &PSG.Hold, &PSG.Alternate, &PSG.Attack, &PSG.Holding };
 	void *psg1[] = { &PSG.lastEnable, &PSG.PeriodA, &PSG.PeriodB, &PSG.PeriodC, &PSG.PeriodN, &PSG.PeriodE, &PSG.CountA, &PSG.CountB, &PSG.CountC, &PSG.CountN, &PSG.CountE, &PSG.VolA, &PSG.VolB, &PSG.VolC, &PSG.VolE, &PSG.RNG };
 	
-	for (int i = 0; i < sizeof(psg0) / sizeof(psg0[0]); i++)
+	for (i = 0; i < sizeof(psg0) / sizeof(psg0[0]); i++)
 		fread(psg0[i], sizeof(uint8_t), 1, f);
-	for (int i = 0; i < sizeof(psg1) / sizeof(psg1[0]); i++)
+	for (i = 0; i < sizeof(psg1) / sizeof(psg1[0]); i++)
 		fread(psg1[i], sizeof(uint32_t), 1, f);
 	fread(PSG.Regs, sizeof(uint8_t), 16, f);
 	fread(PSG.VolTable, sizeof(uint32_t), 32, f);
@@ -111,6 +112,7 @@ static void osint_load_state (char *name) {
 }
 
 static void osint_save_state (char *name) {
+	int i;
 	FILE *f;
 	if (!(f = fopen(name, "wb"))) {
 		perror(name);
@@ -119,12 +121,12 @@ static void osint_save_state (char *name) {
 
 	void *cpu[] = { &CPU.reg_x, &CPU.reg_y, &CPU.reg_u, &CPU.reg_s, &CPU.reg_pc, &CPU.reg_a, &CPU.reg_b, &CPU.reg_dp, &CPU.reg_cc, &CPU.irq_status };
 
-	for (int i = 0; i < sizeof(cpu) / sizeof(cpu[0]); i++)
+	for (i = 0; i < sizeof(cpu) / sizeof(cpu[0]); i++)
 		fwrite(cpu[i], sizeof(uint16_t), 1, f);
 
 	void *via[] = { &VIA.ora, &VIA.orb, &VIA.ddra, &VIA.ddrb, &VIA.t1on, &VIA.t1int, &VIA.t1ll, &VIA.t1lh, &VIA.t1pb7, &VIA.t2on, &VIA.t2int, &VIA.t2ll, &VIA.sr, &VIA.srb, &VIA.src, &VIA.srclk, &VIA.acr, &VIA.pcr, &VIA.ifr, &VIA.ier, &VIA.ca2, &VIA.cb2h, &VIA.cb2s };
 
-	for (int i = 0; i < sizeof(via) / sizeof(via[0]); i++)
+	for (i = 0; i < sizeof(via) / sizeof(via[0]); i++)
 		fwrite(via[i], sizeof(uint8_t), 1, f);
 	fwrite(&VIA.t1c, sizeof(uint16_t), 1, f);
 	fwrite(&VIA.t2c, sizeof(uint16_t), 1, f);
@@ -132,9 +134,9 @@ static void osint_save_state (char *name) {
 	void *psg0[] = { &PSG.ready, &PSG.EnvelopeA, &PSG.EnvelopeB, &PSG.EnvelopeC, &PSG.OutputA, &PSG.OutputB, &PSG.OutputC, &PSG.OutputN, &PSG.CountEnv, &PSG.Hold, &PSG.Alternate, &PSG.Attack, &PSG.Holding };
 	void *psg1[] = { &PSG.lastEnable, &PSG.PeriodA, &PSG.PeriodB, &PSG.PeriodC, &PSG.PeriodN, &PSG.PeriodE, &PSG.CountA, &PSG.CountB, &PSG.CountC, &PSG.CountN, &PSG.CountE, &PSG.VolA, &PSG.VolB, &PSG.VolC, &PSG.VolE, &PSG.RNG };
 
-	for (int i = 0; i < sizeof(psg0) / sizeof(psg0[0]); i++)
+	for (i = 0; i < sizeof(psg0) / sizeof(psg0[0]); i++)
 		fwrite(psg0[i], sizeof(uint8_t), 1, f);
-	for (int i = 0; i < sizeof(psg1) / sizeof(psg1[0]); i++)
+	for (i = 0; i < sizeof(psg1) / sizeof(psg1[0]); i++)
 		fwrite(psg1[i], sizeof(uint32_t), 1, f);
 	fwrite(PSG.Regs, sizeof(uint8_t), 16, f);
 	fwrite(PSG.VolTable, sizeof(uint32_t), 32, f);
