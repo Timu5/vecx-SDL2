@@ -70,12 +70,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\e6522.c" />
     <ClCompile Include="..\e6809.c" />
     <ClCompile Include="..\e8910.c" />
     <ClCompile Include="..\osint.c" />
     <ClCompile Include="..\vecx.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\e6522.h" />
     <ClInclude Include="..\e6809.h" />
     <ClInclude Include="..\e8910.h" />
     <ClInclude Include="..\osint.h" />

@@ -7,6 +7,7 @@
 #include "osint.h"
 #include "e6809.h"
 #include "e8910.h"
+#include "e6522.h"
 #include "vecx.h"
 
 enum {
@@ -29,11 +30,11 @@ void osint_render (void) {
 	}
 
 	for (v = 0; v < vector_draw_cnt; v++) {
-		Uint8 c = vectors_draw[v].color * 256 / VECTREX_COLORS;
-		int x0 = vectors_draw[v].x0 / scl_factor;
-		int y0 = vectors_draw[v].y0 / scl_factor;
-		int x1 = vectors_draw[v].x1 / scl_factor;
-		int y1 = vectors_draw[v].y1 / scl_factor;
+		Uint8 c = vectors[v].color * 256 / VECTREX_COLORS;
+		int x0 = vectors[v].x0 / scl_factor;
+		int y0 = vectors[v].y0 / scl_factor;
+		int x1 = vectors[v].x1 / scl_factor;
+		int y1 = vectors[v].y1 / scl_factor;
 
 		SDL_SetRenderDrawColor(renderer, c, c, c, 0);
 		if (x0 == x1 && y0 == y1) {
