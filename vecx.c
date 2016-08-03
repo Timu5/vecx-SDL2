@@ -443,7 +443,6 @@ void vecx_emu (long cycles)
 		fcycles -= (long) icycles;
 
 		if (fcycles < 0) {
-			vector_t *tmp;
 
 			fcycles += FCYCLES_INIT;
 			osint_render ();

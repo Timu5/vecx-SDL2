@@ -21,7 +21,7 @@ static SDL_Texture *overlay = NULL;
 static long scl_factor;
 
 void osint_render (void) {
-	int v;
+	size_t v;
 	SDL_SetRenderDrawColor (renderer, 0, 0, 0, 0);
 	SDL_RenderClear (renderer);
 
@@ -78,7 +78,7 @@ static void osint_load_cart (void) {
 }
 
 static void osint_load_state (char *name) {
-	int i;
+	size_t i;
 	FILE *f;
 	if (!(f = fopen(name, "rb"))) {
 		perror(name);
@@ -113,7 +113,7 @@ static void osint_load_state (char *name) {
 }
 
 static void osint_save_state (char *name) {
-	int i;
+	size_t i;
 	FILE *f;
 	if (!(f = fopen(name, "wb"))) {
 		perror(name);

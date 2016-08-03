@@ -16,14 +16,14 @@ typedef struct {
 	uint16_t reg_pc;
 
 	/* accumulators */
-	uint16_t reg_a;
-	uint16_t reg_b;
+	uint8_t reg_a;
+	uint8_t reg_b;
 
 	/* direct page register */
-	uint16_t reg_dp;
+	uint8_t reg_dp;
 
 	/* condition codes */
-	uint16_t reg_cc;
+	uint8_t reg_cc;
 
 	/* flag to see if interrupts should be handled (sync/cwai). */
 	uint16_t irq_status;

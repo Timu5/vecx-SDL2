@@ -37,7 +37,7 @@ void (*e6809_write8) (uint16_t address, uint8_t data);
 
 /* obtain a particular condition code. returns 0 or 1. */
 
-__inline uint16_t get_cc (uint16_t flag)
+__inline uint8_t get_cc (uint8_t flag)
 {
 	return (CPU.reg_cc / flag) & 1;
 }
@@ -46,7 +46,7 @@ __inline uint16_t get_cc (uint16_t flag)
  * value parameter must be either 0 or 1.
  */
 
-__inline void set_cc (uint16_t flag, uint16_t value)
+__inline void set_cc (uint8_t flag, uint8_t value)
 {
 	CPU.reg_cc &= ~flag;
 	CPU.reg_cc |= value * flag;
@@ -54,7 +54,7 @@ __inline void set_cc (uint16_t flag, uint16_t value)
 
 /* test carry */
 
-__inline uint16_t test_c (uint16_t i0, uint16_t i1,
+__inline uint8_t test_c (uint16_t i0, uint16_t i1,
 						uint16_t r, uint16_t sub)
 {
 	uint16_t flag;
@@ -64,19 +64,19 @@ __inline uint16_t test_c (uint16_t i0, uint16_t i1,
 	flag  = (flag >> 7) & 1;
 	flag ^= sub; /* on a sub, carry is opposite the carry of an add */
 
-	return flag;
+	return (uint8_t)flag;
 }
 
 /* test negative */
 
-__inline uint16_t test_n (uint16_t r)
+__inline uint8_t test_n (uint16_t r)
 {
 	return (r >> 7) & 1;
 }
 
 /* test for zero in lower 8 bits */
 
-__inline uint16_t test_z8 (uint16_t r)
+__inline uint8_t test_z8 (uint16_t r)
 {
 	uint16_t flag;
 
@@ -85,12 +85,12 @@ __inline uint16_t test_z8 (uint16_t r)
 	flag = (flag >> 2) & (flag & 0x3);
 	flag = (flag >> 1) & (flag & 0x1);
 
-	return flag;
+	return (uint8_t)flag;
 }
 
 /* test for zero in lower 16 bits */
 
-__inline uint16_t test_z16 (uint16_t r)
+__inline uint8_t test_z16 (uint16_t r)
 {
 	uint16_t flag;
 
@@ -100,7 +100,7 @@ __inline uint16_t test_z16 (uint16_t r)
 	flag = (flag >> 2) & (flag & 0x3);
 	flag = (flag >> 1) & (flag & 0x1);
 
-	return flag;
+	return (uint8_t)flag;
 }
 
 /* overflow is set whenever the sign bits of the inputs are the same
@@ -108,7 +108,7 @@ __inline uint16_t test_z16 (uint16_t r)
  * inputs.
  */
 
-__inline uint16_t test_v (uint16_t i0, uint16_t i1, uint16_t r)
+__inline uint8_t test_v (uint16_t i0, uint16_t i1, uint16_t r)
 {
 	uint16_t flag;
 
@@ -116,7 +116,7 @@ __inline uint16_t test_v (uint16_t i0, uint16_t i1, uint16_t r)
 	flag &=  (i0 ^ r);  /* input sign and output sign not same */
 	flag  = (flag >> 7) & 1;
 
-	return flag;
+	return (uint8_t)flag;
 }
 
 __inline uint16_t get_reg_d (void)
@@ -126,15 +126,15 @@ __inline uint16_t get_reg_d (void)
 
 __inline void set_reg_d (uint16_t value)
 {
-	CPU.reg_a = value >> 8;
-	CPU.reg_b = value;
+	CPU.reg_a = (uint8_t)(value >> 8);
+	CPU.reg_b = (uint8_t)value;
 }
 
 /* read a byte ... the returned value has the lower 8-bits set to the byte
  * while the upper bits are all zero.
  */
 
-__inline uint16_t read8 (uint16_t address)
+__inline uint8_t read8 (uint16_t address)
 {
 	return (*e6809_read8) (address);
 }
@@ -155,19 +155,19 @@ __inline uint16_t read16 (uint16_t address)
 
 __inline void write16 (uint16_t address, uint16_t data)
 {
-	write8 (address, data >> 8);
-	write8 (address + 1, data);
+	write8 (address, (uint8_t)(data >> 8));
+	write8 (address + 1, (uint8_t)data);
 }
 
-__inline void push8 (uint16_t *sp, uint16_t data)
+__inline void push8 (uint16_t *sp, uint8_t data)
 {
 	(*sp)--;
 	write8 (*sp, data);
 }
 
-__inline uint16_t pull8 (uint16_t *sp)
+__inline uint8_t pull8 (uint16_t *sp)
 {
-	uint16_t data;
+	uint8_t data;
 
 	data = read8 (*sp);
 	(*sp)++;
@@ -177,8 +177,8 @@ __inline uint16_t pull8 (uint16_t *sp)
 
 __inline void push16 (uint16_t *sp, uint16_t data)
 {
-	push8 (sp, data);
-	push8 (sp, data >> 8);
+	push8 (sp, (uint8_t)data);
+	push8 (sp, (uint8_t)(data >> 8));
 }
 
 __inline uint16_t pull16 (uint16_t *sp)
@@ -189,7 +189,7 @@ __inline uint16_t pull16 (uint16_t *sp)
 
 /* read a byte from the address pointed to by the pc */
 
-__inline uint16_t pc_read8 (void)
+__inline uint8_t pc_read8 (void)
 {
 	return read8(CPU.reg_pc++);
 }
@@ -629,7 +629,7 @@ __inline uint16_t inst_inc (uint16_t data)
 
 /* instruction: tst */
 
-__inline void inst_tst8 (uint16_t data)
+__inline void inst_tst8 (uint8_t data)
 {
 	set_cc (FLAG_N, test_n (data));
 	set_cc (FLAG_Z, test_z8 (data));
@@ -655,9 +655,9 @@ __inline void inst_clr (void)
 
 /* instruction: suba/subb */
 
-__inline uint16_t inst_sub8 (uint16_t data0, uint16_t data1)
+__inline uint8_t inst_sub8 (uint8_t data0, uint8_t data1)
 {
-	uint16_t i0, i1, r;
+	uint8_t i0, i1, r;
 
 	i0 = data0;
 	i1 = ~data1;
@@ -676,9 +676,9 @@ __inline uint16_t inst_sub8 (uint16_t data0, uint16_t data1)
  * only 8-bit version, 16-bit version not needed.
  */
 
-__inline uint16_t inst_sbc (uint16_t data0, uint16_t data1)
+__inline uint8_t inst_sbc (uint8_t data0, uint8_t data1)
 {
-	uint16_t i0, i1, c, r;
+	uint8_t i0, i1, c, r;
 
 	i0 = data0;
 	i1 = ~data1;
@@ -698,9 +698,9 @@ __inline uint16_t inst_sbc (uint16_t data0, uint16_t data1)
  * only 8-bit version, 16-bit version not needed.
  */
 
-__inline uint16_t inst_and (uint16_t data0, uint16_t data1)
+__inline uint8_t inst_and (uint8_t data0, uint8_t data1)
 {
-	uint16_t r;
+	uint8_t r;
 
 	r = data0 & data1;
 
@@ -713,9 +713,9 @@ __inline uint16_t inst_and (uint16_t data0, uint16_t data1)
  * only 8-bit version, 16-bit version not needed.
  */
 
-__inline uint16_t inst_eor (uint16_t data0, uint16_t data1)
+__inline uint8_t inst_eor (uint8_t data0, uint8_t data1)
 {
-	uint16_t r;
+	uint8_t r;
 
 	r = data0 ^ data1;
 
@@ -728,9 +728,9 @@ __inline uint16_t inst_eor (uint16_t data0, uint16_t data1)
  * only 8-bit version, 16-bit version not needed.
  */
 
-__inline uint16_t inst_adc (uint16_t data0, uint16_t data1)
+__inline uint8_t inst_adc (uint8_t data0, uint8_t data1)
 {
-	uint16_t i0, i1, c, r;
+	uint8_t i0, i1, c, r;
 
 	i0 = data0;
 	i1 = data1;
@@ -750,9 +750,9 @@ __inline uint16_t inst_adc (uint16_t data0, uint16_t data1)
  * only 8-bit version, 16-bit version not needed.
  */
 
-__inline uint16_t inst_or (uint16_t data0, uint16_t data1)
+__inline uint8_t inst_or (uint8_t data0, uint8_t data1)
 {
-	uint16_t r;
+	uint8_t r;
 
 	r = data0 | data1;
 
@@ -763,7 +763,7 @@ __inline uint16_t inst_or (uint16_t data0, uint16_t data1)
 
 /* instruction: adda/addb */
 
-__inline uint16_t inst_add8 (uint16_t data0, uint16_t data1)
+__inline uint8_t inst_add8 (uint8_t data0, uint8_t data1)
 {
 	uint16_t i0, i1, r;
 
@@ -777,7 +777,7 @@ __inline uint16_t inst_add8 (uint16_t data0, uint16_t data1)
 	set_cc (FLAG_V, test_v (i0, i1, r));
 	set_cc (FLAG_C, test_c (i0, i1, r, 0));
 
-	return r;
+	return (uint8_t)r;
 }
 
 /* instruction: addd */
@@ -1008,16 +1008,16 @@ __inline void exgtfr_write (uint16_t reg, uint16_t data)
 		CPU.reg_pc = data;
 		break;
 	case 0x8:
-		CPU.reg_a = data;
+		CPU.reg_a = (uint8_t)data;
 		break;
 	case 0x9:
-		CPU.reg_b = data;
+		CPU.reg_b = (uint8_t)data;
 		break;
 	case 0xa:
-		CPU.reg_cc = data;
+		CPU.reg_cc = (uint8_t)data;
 		break;
 	case 0xb:
-		CPU.reg_dp = data;
+		CPU.reg_dp = (uint8_t)data;
 		break;
 	default:
 		printf ("illegal exgtfr reg %.1x\n", reg);
@@ -1134,243 +1134,243 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 	case 0x00:
 		ea = ea_direct ();
 		r = inst_neg (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x40:
-		CPU.reg_a = inst_neg (CPU.reg_a);
+		CPU.reg_a = (uint8_t)inst_neg (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x50:
-		CPU.reg_b = inst_neg (CPU.reg_b);
+		CPU.reg_b = (uint8_t)inst_neg (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x60:
 		ea = ea_indexed (&cycles);
 		r = inst_neg (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x70:
 		ea = ea_extended ();
 		r = inst_neg (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 7;
 		break;
 	/* com, coma, comb */
 	case 0x03:
 		ea = ea_direct ();
 		r = inst_com (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x43:
-		CPU.reg_a = inst_com (CPU.reg_a);
+		CPU.reg_a = (uint8_t)inst_com (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x53:
-		CPU.reg_b = inst_com (CPU.reg_b);
+		CPU.reg_b = (uint8_t)inst_com (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x63:
 		ea = ea_indexed (&cycles);
 		r = inst_com (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x73:
 		ea = ea_extended ();
 		r = inst_com (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 7;
 		break;
 	/* lsr, lsra, lsrb */
 	case 0x04:
 		ea = ea_direct ();
 		r = inst_lsr (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x44:
-		CPU.reg_a = inst_lsr (CPU.reg_a);
+		CPU.reg_a = (uint8_t)inst_lsr (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x54:
-		CPU.reg_b = inst_lsr (CPU.reg_b);
+		CPU.reg_b = (uint8_t)inst_lsr (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x64:
 		ea = ea_indexed (&cycles);
 		r = inst_lsr (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x74:
 		ea = ea_extended ();
 		r = inst_lsr (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 7;
 		break;
 	/* ror, rora, rorb */
 	case 0x06:
 		ea = ea_direct ();
 		r = inst_ror (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x46:
-		CPU.reg_a = inst_ror (CPU.reg_a);
+		CPU.reg_a = (uint8_t)inst_ror (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x56:
-		CPU.reg_b = inst_ror (CPU.reg_b);
+		CPU.reg_b = (uint8_t)inst_ror (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x66:
 		ea = ea_indexed (&cycles);
 		r = inst_ror (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x76:
 		ea = ea_extended ();
 		r = inst_ror (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 7;
 		break;
 	/* asr, asra, asrb */
 	case 0x07:
 		ea = ea_direct ();
 		r = inst_asr (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x47:
-		CPU.reg_a = inst_asr (CPU.reg_a);
+		CPU.reg_a = (uint8_t)inst_asr (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x57:
-		CPU.reg_b = inst_asr (CPU.reg_b);
+		CPU.reg_b = (uint8_t)inst_asr (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x67:
 		ea = ea_indexed (&cycles);
 		r = inst_asr (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x77:
 		ea = ea_extended ();
 		r = inst_asr (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 7;
 		break;
 	/* asl, asla, aslb */
 	case 0x08:
 		ea = ea_direct ();
 		r = inst_asl (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x48:
-		CPU.reg_a = inst_asl (CPU.reg_a);
+		CPU.reg_a = (uint8_t)inst_asl (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x58:
-		CPU.reg_b = inst_asl (CPU.reg_b);
+		CPU.reg_b = (uint8_t)inst_asl (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x68:
 		ea = ea_indexed (&cycles);
 		r = inst_asl (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x78:
 		ea = ea_extended ();
 		r = inst_asl (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 7;
 		break;
 	/* rol, rola, rolb */
 	case 0x09:
 		ea = ea_direct ();
 		r = inst_rol (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x49:
-		CPU.reg_a = inst_rol (CPU.reg_a);
+		CPU.reg_a = (uint8_t)inst_rol (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x59:
-		CPU.reg_b = inst_rol (CPU.reg_b);
+		CPU.reg_b = (uint8_t)inst_rol (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x69:
 		ea = ea_indexed (&cycles);
 		r = inst_rol (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x79:
 		ea = ea_extended ();
 		r = inst_rol (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 7;
 		break;
 	/* dec, deca, decb */
 	case 0x0a:
 		ea = ea_direct ();
 		r = inst_dec (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x4a:
-		CPU.reg_a = inst_dec (CPU.reg_a);
+		CPU.reg_a = (uint8_t)inst_dec (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x5a:
-		CPU.reg_b = inst_dec (CPU.reg_b);
+		CPU.reg_b = (uint8_t)inst_dec (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x6a:
 		ea = ea_indexed (&cycles);
 		r = inst_dec (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x7a:
 		ea = ea_extended ();
 		r = inst_dec (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 7;
 		break;
 	/* inc, inca, incb */
 	case 0x0c:
 		ea = ea_direct ();
 		r = inst_inc (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x4c:
-		CPU.reg_a = inst_inc (CPU.reg_a);
+		CPU.reg_a = (uint8_t)inst_inc (CPU.reg_a);
 		cycles += 2;
 		break;
 	case 0x5c:
-		CPU.reg_b = inst_inc (CPU.reg_b);
+		CPU.reg_b = (uint8_t)inst_inc (CPU.reg_b);
 		cycles += 2;
 		break;
 	case 0x6c:
 		ea = ea_indexed (&cycles);
 		r = inst_inc (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 6;
 		break;
 	case 0x7c:
 		ea = ea_extended ();
 		r = inst_inc (read8 (ea));
-		write8 (ea, r);
+		write8 (ea, (uint8_t)r);
 		cycles += 7;
 		break;
 	/* tst, tsta, tstb */

@@ -1,7 +1,6 @@
 #include <stdint.h>
 
 #include "e6522.h"
-#include "vecx.h"
 
 VIA6522 VIA;
 

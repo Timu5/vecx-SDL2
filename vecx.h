@@ -40,7 +40,7 @@ extern long alg_dy;
 extern long alg_curr_x;
 extern long alg_curr_y;
 
-extern long vector_draw_cnt;
+extern size_t vector_draw_cnt;
 extern vector_t vectors[];
 
 
