@@ -5,6 +5,11 @@
 
 VIA6522 VIA;
 
+uint8_t (*via_read8_port_a) ();
+uint8_t (*via_read8_port_b) ();
+void (*via_write8_port_a) (uint8_t data);
+void (*via_write8_port_b) (uint8_t data);
+
 /* update IRQ and bit-7 of the ifr register after making an adjustment to
  * ifr.
  */
@@ -24,19 +29,8 @@ uint8_t via_read (uint16_t address)
 	
 	switch (address & 0xf) {
 		case 0x0:
-			/* compare signal is an input so the value does not come from
-			 * VIA.orb.
-			 */
 
-			if (VIA.acr & 0x80) {
-				/* timer 1 has control of bit 7 */
-
-				data = (uint8_t) ((VIA.orb & 0x5f) | VIA.t1pb7 | alg_compare);
-			} else {
-				/* bit 7 is being driven by VIA.orb */
-
-				data = (uint8_t) ((VIA.orb & 0xdf) | alg_compare);
-			}
+			data = via_read8_port_b();
 
 			break;
 		case 0x1:
@@ -53,13 +47,8 @@ uint8_t via_read (uint16_t address)
 			/* fall through */
 
 		case 0xf:
-			if ((VIA.orb & 0x18) == 0x08) {
-				/* the snd chip is driving port a */
-
-				data = (uint8_t) snd_regs[snd_select];
-			} else {
-				data = (uint8_t) VIA.ora;
-			}
+			
+			data = via_read8_port_a();
 
 			break;
 		case 0x2:
@@ -148,10 +137,7 @@ void via_write (uint16_t address, uint8_t data)
 	switch (address & 0xf) {
 		case 0x0:
 			VIA.orb = data;
-
-			snd_update ();
-
-			alg_update ();
+			via_write8_port_b(data);
 
 			if ((VIA.pcr & 0xe0) == 0x80) {
 				/* if cb2 is in pulse mode or handshake mode, then it
@@ -177,17 +163,7 @@ void via_write (uint16_t address, uint8_t data)
 
 		case 0xf:
 			VIA.ora = data;
-
-			snd_update ();
-
-			/* output of port a feeds directly into the dac which then
-			 * feeds the x axis sample and hold.
-			 */
-
-			alg_xsh = data ^ 0x80;
-
-			alg_update ();
-
+			via_write8_port_a(data);
 			break;
 		case 0x2:
 			VIA.ddrb = data;

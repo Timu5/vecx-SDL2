@@ -152,6 +152,52 @@ void alg_update (void)
 	alg_dy = (long) alg_rsh - (long) alg_ysh;
 }
 
+uint8_t read8_port_a()
+{
+	if ((VIA.orb & 0x18) == 0x08) {
+		/* the snd chip is driving port a */
+
+		return snd_regs[snd_select];
+	}
+	else {
+		return VIA.ora;
+	}
+}
+
+uint8_t read8_port_b()
+{
+	/* compare signal is an input so the value does not come from
+	* VIA.orb.
+	*/
+
+	if (VIA.acr & 0x80) {
+		/* timer 1 has control of bit 7 */
+
+		return (uint8_t)((VIA.orb & 0x5f) | VIA.t1pb7 | alg_compare);
+	} else {
+		/* bit 7 is being driven by VIA.orb */
+
+		return (uint8_t)((VIA.orb & 0xdf) | alg_compare);
+	}
+}
+
+void write8_port_a (uint8_t data)
+{
+	snd_update();
+
+	/* output of port a feeds directly into the dac which then
+	* feeds the x axis sample and hold.
+	*/
+
+	alg_xsh = data ^ 0x80;
+	alg_update();
+}
+
+void write8_port_b (uint8_t data)
+{
+	snd_update();
+	alg_update();
+}
 
 static uint8_t read8 (uint16_t address)
 {
@@ -220,8 +266,6 @@ void vecx_reset (void)
 	e8910_write(14, 0xff);
 
 	snd_select = 0;
-
-	via_reset();
 	
 	alg_rsh = 128;
 	alg_xsh = 128;
@@ -244,6 +288,13 @@ void vecx_reset (void)
 
 	vector_draw_cnt = 0;
 	fcycles = FCYCLES_INIT;
+
+	via_read8_port_a = read8_port_a;
+	via_read8_port_b = read8_port_b;
+	via_write8_port_a = write8_port_a;
+	via_write8_port_b = write8_port_b;
+
+	via_reset();
 
 	e6809_read8 = read8;
 	e6809_write8 = write8;
