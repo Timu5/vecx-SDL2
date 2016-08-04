@@ -23,8 +23,8 @@ static long scl_factor;
 
 void osint_render (void) {
 	size_t v;
-	SDL_SetRenderDrawColor (renderer, 0, 0, 0, 0);
-	SDL_RenderClear (renderer);
+	SDL_SetRenderDrawColor (renderer, 0, 0, 0, 128);
+	SDL_RenderFillRect(renderer, NULL);
 
 	if (overlay) {
 		SDL_RenderCopy (renderer, overlay, NULL, NULL);
@@ -37,7 +37,7 @@ void osint_render (void) {
 		int x1 = vectors[v].x1 / scl_factor;
 		int y1 = vectors[v].y1 / scl_factor;
 
-		SDL_SetRenderDrawColor(renderer, c, c, c, 0);
+		SDL_SetRenderDrawColor(renderer, c, c, c, 255);
 		if (x0 == x1 && y0 == y1) {
 			/* point */
 			SDL_RenderDrawPoint(renderer, x0, y0);
@@ -328,6 +328,8 @@ int main (int argc, char *argv[]) {
 		cartfilename = argv[1];
 	if (argc > 2)
 		osint_load_overlay (argv[2]);
+
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
 	osint_resize();
 	osint_load_bios();
