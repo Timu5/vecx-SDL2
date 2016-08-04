@@ -8,6 +8,7 @@
 #include "e6809.h"
 #include "e8910.h"
 #include "e6522.h"
+#include "edac.h"
 #include "vecx.h"
 
 enum {
@@ -153,12 +154,12 @@ static void osint_resize (void) {
 	
 	SDL_GetWindowSize (window, &screenx, &screeny);
 
-	sclx = ALG_MAX_X / screenx;
-	scly = ALG_MAX_Y / screeny;
+	sclx = DAC_MAX_X / screenx;
+	scly = DAC_MAX_Y / screeny;
 
 	scl_factor = sclx > scly ? sclx : scly;
 	
-	SDL_RenderSetLogicalSize (renderer, ALG_MAX_X / scl_factor, ALG_MAX_Y / scl_factor);
+	SDL_RenderSetLogicalSize (renderer, DAC_MAX_X / scl_factor, DAC_MAX_Y / scl_factor);
 }
 
 static int osint_readevents (void) {
@@ -194,16 +195,16 @@ static int osint_readevents (void) {
 						snd_regs[14] &= ~0x08;
 						break;
 					case SDLK_LEFT:
-						alg_jch0 = 0x00;
+						DAC.jch0 = 0x00;
 						break;
 					case SDLK_RIGHT:
-						alg_jch0 = 0xff;
+						DAC.jch0 = 0xff;
 						break;
 					case SDLK_UP:
-						alg_jch1 = 0xff;
+						DAC.jch1 = 0xff;
 						break;
 					case SDLK_DOWN:
-						alg_jch1 = 0x00;
+						DAC.jch1 = 0x00;
 						break;
 					default:
 						break;
@@ -252,16 +253,16 @@ static int osint_readevents (void) {
 						snd_regs[14] |= 0x08;
 						break;
 					case SDLK_LEFT:
-						alg_jch0 = 0x80;
+						DAC.jch0 = 0x80;
 						break;
 					case SDLK_RIGHT:
-						alg_jch0 = 0x80;
+						DAC.jch0 = 0x80;
 						break;
 					case SDLK_UP:
-						alg_jch1 = 0x80;
+						DAC.jch1 = 0x80;
 						break;
 					case SDLK_DOWN:
-						alg_jch1 = 0x80;
+						DAC.jch1 = 0x80;
 						break;
 					default:
 						break;

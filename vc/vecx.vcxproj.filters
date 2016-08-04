@@ -30,6 +30,9 @@
     <ClCompile Include="..\e6522.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\edac.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\e6809.h">
@@ -45,6 +48,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\e6522.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\edac.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
