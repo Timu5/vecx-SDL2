@@ -75,7 +75,7 @@
     <ClCompile Include="..\emu\e8910.c" />
     <ClCompile Include="..\emu\edac.c" />
     <ClCompile Include="..\emu\vecx.c" />
-    <ClCompile Include="..\osint.c" />
+    <ClCompile Include="..\main.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\emu\e6522.h" />

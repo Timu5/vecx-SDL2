@@ -20,7 +20,7 @@ static SDL_Texture *overlay = NULL;
 
 static long scl_factor;
 
-void osint_render (void) {
+static void render (void) {
 	size_t v;
 	if (!overlay)
 	{
@@ -54,7 +54,7 @@ void osint_render (void) {
 static char *biosfilename = "bios.bin";
 static char *cartfilename = NULL;
 
-static void osint_load_bios(void) {
+static void load_bios(void) {
 	FILE *f;
 	if (!(f = fopen (biosfilename, "rb"))) {
 		perror (biosfilename);
@@ -67,7 +67,7 @@ static void osint_load_bios(void) {
 	fclose (f);
 }
 
-static void osint_load_cart (void) {
+static void load_cart (void) {
 	FILE *f;
 	memset (cart, 0, sizeof (cart));
 	if (cartfilename) {
@@ -80,7 +80,7 @@ static void osint_load_cart (void) {
 	}
 }
 
-static void osint_load_state (char *name) {
+static void load_state (char *name) {
 	size_t i;
 	FILE *f;
 	if (!(f = fopen(name, "rb"))) {
@@ -115,7 +115,7 @@ static void osint_load_state (char *name) {
 	fclose(f);
 }
 
-static void osint_save_state (char *name) {
+static void save_state (char *name) {
 	size_t i;
 	FILE *f;
 	if (!(f = fopen(name, "wb"))) {
@@ -150,7 +150,7 @@ static void osint_save_state (char *name) {
 	fclose(f);
 }
 
-static void osint_resize (void) {
+static void resize (void) {
 	int sclx, scly;
 	int screenx, screeny;
 	
@@ -164,7 +164,7 @@ static void osint_resize (void) {
 	SDL_RenderSetLogicalSize (renderer, DAC_MAX_X / scl_factor, DAC_MAX_Y / scl_factor);
 }
 
-static int osint_readevents (void) {
+static int readevents (void) {
 	SDL_Event e;
 	while (SDL_PollEvent (&e)) {
 		switch (e.type) {
@@ -173,11 +173,11 @@ static int osint_readevents (void) {
 				break;
 			case SDL_WINDOWEVENT:
 				if (e.window.event == SDL_WINDOWEVENT_RESIZED)
-					osint_resize ();
+					resize ();
 				break;
 			case SDL_DROPFILE:
 				cartfilename = e.drop.file;
-				osint_load_cart ();
+				load_cart ();
 				vecx_reset ();
 				break;
 			case SDL_KEYDOWN:
@@ -197,9 +197,10 @@ static int osint_readevents (void) {
 				break;
 			case SDL_KEYUP:
 				switch (e.key.keysym.sym) {
-					case SDLK_F1: osint_load_state ("q.save"); break;
-					case SDLK_F5: osint_save_state ("q.save"); break;
-					case SDLK_r: osint_load_cart(); vecx_reset (); break;
+					case SDLK_F1: load_state ("q.save"); break;
+					case SDLK_F5: save_state ("q.save"); break;
+					case SDLK_r: load_cart(); vecx_reset (); break;
+
 					case SDLK_a: vecx_input(VECTREX_PAD1_BUTTON1, 0); break;
 					case SDLK_s: vecx_input(VECTREX_PAD1_BUTTON2, 0); break;
 					case SDLK_d: vecx_input(VECTREX_PAD1_BUTTON3, 0); break;
@@ -219,12 +220,12 @@ static int osint_readevents (void) {
 	return 0;
 }
 
-void osint_emuloop (void) {
+void emuloop (void) {
 	Uint32 next_time = SDL_GetTicks () + EMU_TIMER;
 	vecx_reset ();
 	for (;;) {
 		vecx_emu ((VECTREX_MHZ / 1000) * EMU_TIMER);
-		if (osint_readevents ()) break;
+		if (readevents ()) break;
 
 		{
 			Uint32 now = SDL_GetTicks ();
@@ -237,7 +238,7 @@ void osint_emuloop (void) {
 	}
 }
 
-void osint_load_overlay (const char *filename) {
+void load_overlay (const char *filename) {
 	SDL_Texture *image;
 	image = IMG_LoadTexture (renderer, filename);
 	if (image) {
@@ -272,17 +273,17 @@ int main (int argc, char *argv[]) {
 	if (argc > 1)
 		cartfilename = argv[1];
 	if (argc > 2)
-		osint_load_overlay (argv[2]);
+		load_overlay (argv[2]);
 
 	SDL_SetRenderDrawBlendMode (renderer, SDL_BLENDMODE_BLEND);
 
-	osint_resize ();
-	osint_load_bios ();
-	osint_load_cart ();
+	resize ();
+	load_bios ();
+	load_cart ();
 	e8910_init ();
-	vecx_render = osint_render;
+	vecx_render = render;
 
-	osint_emuloop ();
+	emuloop ();
 
 	e8910_done ();
 	SDL_DestroyRenderer (renderer);

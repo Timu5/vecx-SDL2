@@ -21,9 +21,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\osint.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\emu\e6522.c">
       <Filter>Source Files\emu</Filter>
     </ClCompile>
@@ -38,6 +35,9 @@
     </ClCompile>
     <ClCompile Include="..\emu\vecx.c">
       <Filter>Source Files\emu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\main.c">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
