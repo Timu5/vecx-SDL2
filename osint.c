@@ -23,8 +23,11 @@ static long scl_factor;
 
 void osint_render (void) {
 	size_t v;
-	SDL_SetRenderDrawColor (renderer, 0, 0, 0, 128);
-	SDL_RenderFillRect(renderer, NULL);
+	if (!overlay)
+	{
+		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 128);
+		SDL_RenderFillRect(renderer, NULL);
+	}
 
 	if (overlay) {
 		SDL_RenderCopy (renderer, overlay, NULL, NULL);
@@ -37,7 +40,7 @@ void osint_render (void) {
 		int x1 = vectors[v].x1 / scl_factor;
 		int y1 = vectors[v].y1 / scl_factor;
 
-		SDL_SetRenderDrawColor(renderer, c, c, c, 255);
+		SDL_SetRenderDrawColor(renderer, 255, 255, 255, c);
 		if (x0 == x1 && y0 == y1) {
 			/* point */
 			SDL_RenderDrawPoint(renderer, x0, y0);
@@ -180,90 +183,32 @@ static int osint_readevents (void) {
 				break;
 			case SDL_KEYDOWN:
 				switch (e.key.keysym.sym) {
-					case SDLK_ESCAPE:
-						return 1;
-					case SDLK_a:
-						snd_regs[14] &= ~0x01;
-						break;
-					case SDLK_s:
-						snd_regs[14] &= ~0x02;
-						break;
-					case SDLK_d:
-						snd_regs[14] &= ~0x04;
-						break;
-					case SDLK_f:
-						snd_regs[14] &= ~0x08;
-						break;
-					case SDLK_LEFT:
-						DAC.jch0 = 0x00;
-						break;
-					case SDLK_RIGHT:
-						DAC.jch0 = 0xff;
-						break;
-					case SDLK_UP:
-						DAC.jch1 = 0xff;
-						break;
-					case SDLK_DOWN:
-						DAC.jch1 = 0x00;
-						break;
+					case SDLK_ESCAPE: return 1;
+					case SDLK_a: vecx_input(VECTREX_PAD1_BUTTON1, 1); break;
+					case SDLK_s: vecx_input(VECTREX_PAD1_BUTTON2, 1); break;
+					case SDLK_d: vecx_input(VECTREX_PAD1_BUTTON3, 1); break;
+					case SDLK_f: vecx_input(VECTREX_PAD1_BUTTON4, 1); break;
+					case SDLK_LEFT: vecx_input(VECTREX_PAD1_X, 0x00); break;
+					case SDLK_RIGHT: vecx_input(VECTREX_PAD1_X, 0xff); break;
+					case SDLK_UP: vecx_input(VECTREX_PAD1_Y, 0xff); break;
+					case SDLK_DOWN: vecx_input(VECTREX_PAD1_Y, 0x00); break;
 					default:
 						break;
 				}
 				break;
 			case SDL_KEYUP:
 				switch (e.key.keysym.sym) {
-					case SDLK_F1:
-						osint_load_state ("q1.save");
-						break;
-					case SDLK_F2:
-						osint_load_state ("q2.save");
-						break;
-					case SDLK_F3:
-						osint_load_state ("q3.save");
-						break;
-					case SDLK_F4:
-						osint_load_state ("q4.save");
-						break;
-					case SDLK_F5:
-						osint_save_state ("q1.save");
-						break;
-					case SDLK_F6:
-						osint_save_state ("q2.save");
-						break;
-					case SDLK_F7:
-						osint_save_state ("q3.save");
-						break;
-					case SDLK_F8:
-						osint_save_state ("q4.save");
-						break;
-					case SDLK_r:
-						osint_load_cart();
-						vecx_reset ();
-						break;
-					case SDLK_a:
-						snd_regs[14] |= 0x01;
-						break;
-					case SDLK_s:
-						snd_regs[14] |= 0x02;
-						break;
-					case SDLK_d:
-						snd_regs[14] |= 0x04;
-						break;
-					case SDLK_f:
-						snd_regs[14] |= 0x08;
-						break;
-					case SDLK_LEFT:
-						DAC.jch0 = 0x80;
-						break;
-					case SDLK_RIGHT:
-						DAC.jch0 = 0x80;
-						break;
-					case SDLK_UP:
-						DAC.jch1 = 0x80;
-						break;
-					case SDLK_DOWN:
-						DAC.jch1 = 0x80;
-						break;
+					case SDLK_F1: osint_load_state ("q.save"); break;
+					case SDLK_F5: osint_save_state ("q.save"); break;
+					case SDLK_r: osint_load_cart(); vecx_reset (); break;
+					case SDLK_a: vecx_input(VECTREX_PAD1_BUTTON1, 0); break;
+					case SDLK_s: vecx_input(VECTREX_PAD1_BUTTON2, 0); break;
+					case SDLK_d: vecx_input(VECTREX_PAD1_BUTTON3, 0); break;
+					case SDLK_f: vecx_input(VECTREX_PAD1_BUTTON4, 0); break;
+					case SDLK_LEFT: vecx_input(VECTREX_PAD1_X, 0x80); break;
+					case SDLK_RIGHT: vecx_input(VECTREX_PAD1_X, 0x80); break;
+					case SDLK_UP: vecx_input(VECTREX_PAD1_Y, 0x80); break;
+					case SDLK_DOWN: vecx_input(VECTREX_PAD1_Y, 0x80); break;
 					default:
 						break;
 				}
@@ -301,6 +246,7 @@ void osint_load_overlay (const char *filename) {
 	} else {
 		fprintf (stderr, "IMG_Load: %s\n", IMG_GetError ());
 	}
+	SDL_SetTextureAlphaMod(image, 128);
 }
 
 int main (int argc, char *argv[]) {			

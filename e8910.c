@@ -50,11 +50,16 @@ enum {
 	AY_PORTB		= 15
 };
 
+uint8_t e8910_read (uint8_t r)
+{
+	return PSG.Regs[r];
+}
+
+
 void e8910_write (uint8_t r, uint8_t v)
 {
 	int32_t old;
 
-    if (PSG.Regs == NULL) return;
 	PSG.Regs[r] = v;
 
 	/* A note about the period of tones, noise and envelope: for speed reasons,*/
@@ -436,7 +441,6 @@ void e8910_init_sound (void)
 	SDL_AudioSpec reqSpec;
 	SDL_AudioSpec givenSpec;
 
-	PSG.Regs = snd_regs;
 	PSG.RNG  = 1;
 	PSG.OutputA = 0;
 	PSG.OutputB = 0;
