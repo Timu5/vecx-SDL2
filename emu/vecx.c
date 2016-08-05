@@ -8,7 +8,7 @@
 #include "e6522.h"
 #include "e8910.h"
 #include "edac.h"
-#include "osint.h"
+#include "../osint.h"
 
 uint8_t rom[8192];
 uint8_t cart[32768];

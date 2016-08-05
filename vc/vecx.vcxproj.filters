@@ -13,45 +13,51 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="Header Files\emu">
+      <UniqueIdentifier>{a52c9dc1-7632-4c32-8408-547a98ab3357}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\emu">
+      <UniqueIdentifier>{91ab3c85-7354-4f36-b7ba-8b3476ee164d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\e6809.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\e8910.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\osint.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\vecx.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\emu\e6522.c">
+      <Filter>Source Files\emu</Filter>
     </ClCompile>
-    <ClCompile Include="..\e6522.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\emu\e6809.c">
+      <Filter>Source Files\emu</Filter>
     </ClCompile>
-    <ClCompile Include="..\edac.c">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="..\emu\e8910.c">
+      <Filter>Source Files\emu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\edac.c">
+      <Filter>Source Files\emu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\emu\vecx.c">
+      <Filter>Source Files\emu</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\e6809.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\e8910.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\osint.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\vecx.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\emu\e6522.h">
+      <Filter>Header Files\emu</Filter>
     </ClInclude>
-    <ClInclude Include="..\e6522.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\emu\e6809.h">
+      <Filter>Header Files\emu</Filter>
     </ClInclude>
-    <ClInclude Include="..\edac.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="..\emu\e8910.h">
+      <Filter>Header Files\emu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\emu\edac.h">
+      <Filter>Header Files\emu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\emu\vecx.h">
+      <Filter>Header Files\emu</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

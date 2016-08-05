@@ -5,11 +5,11 @@
 #include <SDL_image.h>
 
 #include "osint.h"
-#include "e6809.h"
-#include "e8910.h"
-#include "e6522.h"
-#include "edac.h"
-#include "vecx.h"
+#include "emu/e6809.h"
+#include "emu/e8910.h"
+#include "emu/e6522.h"
+#include "emu/edac.h"
+#include "emu/vecx.h"
 
 enum {
 	EMU_TIMER = 20 /* the emulators heart beats at 20 milliseconds */
