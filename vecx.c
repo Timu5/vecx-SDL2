@@ -1,3 +1,4 @@
+#include <string.h>
 #include <stdio.h>
 #include <stdint.h>
 
@@ -200,15 +201,10 @@ void vecx_reset (void)
 	/* ram */
 
 	for (r = 0; r < 1024; r++) {
-		ram[r] = r & 0xff;
+		ram[r] = (uint8_t)r;
 	}
 
-	for (r = 0; r < 16; r++) {
-		e8910_write(r, 0);
-	}
-
-	/* input buttons */
-	e8910_write(14, 0xff);
+	e8910_reset();
 
 	snd_select = 0;
 

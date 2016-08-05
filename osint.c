@@ -275,16 +275,16 @@ int main (int argc, char *argv[]) {
 	if (argc > 2)
 		osint_load_overlay (argv[2]);
 
-	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+	SDL_SetRenderDrawBlendMode (renderer, SDL_BLENDMODE_BLEND);
 
-	osint_resize();
-	osint_load_bios();
-	osint_load_cart();
-	e8910_init_sound ();
+	osint_resize ();
+	osint_load_bios ();
+	osint_load_cart ();
+	e8910_init ();
 
 	osint_emuloop ();
 
-	e8910_done_sound ();
+	e8910_done ();
 	SDL_DestroyRenderer (renderer);
 	SDL_DestroyWindow (window);
 	SDL_Quit ();

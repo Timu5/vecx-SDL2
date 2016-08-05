@@ -414,7 +414,6 @@ static void e8910_callback (void *userdata, uint8_t *stream, int length)
 	}
 }
 
-
 static void e8910_build_mixer_table (void)
 {
 	int i;
@@ -432,10 +431,18 @@ static void e8910_build_mixer_table (void)
 	PSG.VolTable[0] = 0;
 }
 
+void e8910_reset(void)
+{
+	uint8_t r;
+	for (r = 0; r < 16; r++) {
+		e8910_write(r, 0);
+	}
 
-extern uint8_t snd_regs[16];
+	/* input buttons */
+	e8910_write(14, 0xff);
+}
 
-void e8910_init_sound (void)
+void e8910_init (void)
 {
 	// SDL audio stuff
 	SDL_AudioSpec reqSpec;
@@ -466,7 +473,7 @@ void e8910_init_sound (void)
 	SDL_PauseAudio (0);
 }
 
-void e8910_done_sound (void)
+void e8910_done (void)
 {
 	SDL_CloseAudio ();
 }
