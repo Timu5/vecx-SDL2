@@ -196,7 +196,7 @@ static void e8910_callback (void *userdata, uint8_t *stream, int length)
 
 	/* hack to prevent us from hanging when starting filtered outputs */
 	if (!PSG.ready) {
-		memset (stream, 0, length * sizeof (*stream));
+		memset (stream, 128, length * sizeof (*stream));
 		return;
 	}
 
@@ -409,8 +409,8 @@ static void e8910_callback (void *userdata, uint8_t *stream, int length)
 			}
 		}
 
-		vol = (vola * PSG.VolA + volb * PSG.VolB + volc * PSG.VolC) / (3 * STEP);
-		if (--length & 1) *(buf1++) = vol >> 8;
+		vol = ((vola * PSG.VolA + volb * PSG.VolB + volc * PSG.VolC) / (3 * STEP));
+		if (--length & 1) *(buf1++) = (vol >> 8) + 128;
 	}
 }
 
