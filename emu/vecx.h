@@ -30,6 +30,8 @@ typedef struct vector_type {
 	unsigned char color;
 } vector_t;
 
+extern void (*vecx_render) (void);
+
 extern uint8_t rom[8192];
 extern uint8_t cart[32768];
 extern uint8_t ram[1024];

@@ -41,9 +41,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\osint.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\emu\e6522.h">
       <Filter>Header Files\emu</Filter>
     </ClInclude>

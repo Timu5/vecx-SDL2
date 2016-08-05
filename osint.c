@@ -4,7 +4,6 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
-#include "osint.h"
 #include "emu/e6809.h"
 #include "emu/e8910.h"
 #include "emu/e6522.h"
@@ -281,6 +280,7 @@ int main (int argc, char *argv[]) {
 	osint_load_bios ();
 	osint_load_cart ();
 	e8910_init ();
+	vecx_render = osint_render;
 
 	osint_emuloop ();
 

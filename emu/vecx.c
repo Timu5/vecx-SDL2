@@ -8,7 +8,8 @@
 #include "e6522.h"
 #include "e8910.h"
 #include "edac.h"
-#include "../osint.h"
+
+void (*vecx_render) (void);
 
 uint8_t rom[8192];
 uint8_t cart[32768];
@@ -248,10 +249,10 @@ void vecx_emu (long cycles)
 		if (fcycles < 0) {
 
 			fcycles += FCYCLES_INIT;
-			osint_render ();
+			vecx_render();
 
-			/* everything that was drawn during this pass now enters
-			 * the erase list for the next pass.
+			/* everything that was drawn during this pass
+			 * now is being removed.
 			 */
 			vector_draw_cnt = 0;
 		}

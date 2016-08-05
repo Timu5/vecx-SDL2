@@ -83,7 +83,6 @@
     <ClInclude Include="..\emu\e8910.h" />
     <ClInclude Include="..\emu\edac.h" />
     <ClInclude Include="..\emu\vecx.h" />
-    <ClInclude Include="..\osint.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
