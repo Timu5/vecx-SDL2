@@ -19,10 +19,11 @@ typedef struct {
 
 extern AY8910 PSG;
 
+#define e8910_read(x) PSG.Regs[x]
+
 void e8910_reset (void);
 void e8910_init (void);
 void e8910_done (void);
-uint8_t e8910_read (uint8_t r);
 void e8910_write (uint8_t r, uint8_t v);
 
 #endif

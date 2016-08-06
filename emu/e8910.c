@@ -27,6 +27,8 @@ AY8910 PSG;
 enum {
 	SOUND_FREQ		= 22050,
 	SOUND_SAMPLE	= 1024,
+	TUNEA = 1, /* tuning muliplayer */
+	TUNEB = 2, /* tuning divider */
 	
 	MAX_OUTPUT		= 0x0fff,
 
@@ -50,12 +52,6 @@ enum {
 	AY_PORTB		= 15
 };
 
-uint8_t e8910_read (uint8_t r)
-{
-	return PSG.Regs[r];
-}
-
-
 void e8910_write (uint8_t r, uint8_t v)
 {
 	int32_t old;
@@ -77,7 +73,7 @@ void e8910_write (uint8_t r, uint8_t v)
 	case AY_ACOARSE:
 		PSG.Regs[AY_ACOARSE] &= 0x0f;
 		old = PSG.PeriodA;
-		PSG.PeriodA = (PSG.Regs[AY_AFINE] + 256 * PSG.Regs[AY_ACOARSE]) * STEP3;
+		PSG.PeriodA = ((PSG.Regs[AY_AFINE] + 256 * PSG.Regs[AY_ACOARSE]) * STEP3 * TUNEA) / TUNEB;
 		if (PSG.PeriodA == 0) PSG.PeriodA = STEP3;
 		PSG.CountA += PSG.PeriodA - old;
 		if (PSG.CountA <= 0) PSG.CountA = 1;
@@ -86,7 +82,7 @@ void e8910_write (uint8_t r, uint8_t v)
 	case AY_BCOARSE:
 		PSG.Regs[AY_BCOARSE] &= 0x0f;
 		old = PSG.PeriodB;
-		PSG.PeriodB = (PSG.Regs[AY_BFINE] + 256 * PSG.Regs[AY_BCOARSE]) * STEP3;
+		PSG.PeriodB = ((PSG.Regs[AY_BFINE] + 256 * PSG.Regs[AY_BCOARSE]) * STEP3 * TUNEA) / TUNEB;
 		if (PSG.PeriodB == 0) PSG.PeriodB = STEP3;
 		PSG.CountB += PSG.PeriodB - old;
 		if (PSG.CountB <= 0) PSG.CountB = 1;
@@ -95,7 +91,7 @@ void e8910_write (uint8_t r, uint8_t v)
 	case AY_CCOARSE:
 		PSG.Regs[AY_CCOARSE] &= 0x0f;
 		old = PSG.PeriodC;
-		PSG.PeriodC = (PSG.Regs[AY_CFINE] + 256 * PSG.Regs[AY_CCOARSE]) * STEP3;
+		PSG.PeriodC = ((PSG.Regs[AY_CFINE] + 256 * PSG.Regs[AY_CCOARSE]) * STEP3 * TUNEA) / TUNEB;
 		if (PSG.PeriodC == 0) PSG.PeriodC = STEP3;
 		PSG.CountC += PSG.PeriodC - old;
 		if (PSG.CountC <= 0) PSG.CountC = 1;
@@ -193,6 +189,7 @@ static void e8910_callback (void *userdata, uint8_t *stream, int length)
 
 	int outn;
 	uint8_t* buf1 = stream;
+	static uint16_t last_outp = 128;
 
 	/* hack to prevent us from hanging when starting filtered outputs */
 	if (!PSG.ready) {
@@ -409,8 +406,10 @@ static void e8910_callback (void *userdata, uint8_t *stream, int length)
 			}
 		}
 
-		vol = ((vola * PSG.VolA + volb * PSG.VolB + volc * PSG.VolC) / (3 * STEP));
-		if (--length & 1) *(buf1++) = (vol >> 8) + 128;
+		vol = ((vola * PSG.VolA + volb * PSG.VolB + volc * PSG.VolC) / (3 * STEP)) >> 6;
+		vol = ((last_outp + (128 + vol)) / (1+1));
+		if (--length & 1) *(buf1++) = vol;
+		last_outp = vol;
 	}
 }
 
