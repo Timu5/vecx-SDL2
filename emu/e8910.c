@@ -189,7 +189,7 @@ static void e8910_callback (void *userdata, uint8_t *stream, int length)
 
 	int outn;
 	uint8_t* buf1 = stream;
-	static uint16_t last_outp = 128;
+	static uint16_t last_vol = 128;
 
 	/* hack to prevent us from hanging when starting filtered outputs */
 	if (!PSG.ready) {
@@ -407,9 +407,9 @@ static void e8910_callback (void *userdata, uint8_t *stream, int length)
 		}
 
 		vol = ((vola * PSG.VolA + volb * PSG.VolB + volc * PSG.VolC) / (3 * STEP)) >> 6;
-		vol = ((last_outp + (128 + vol)) / (1+1));
+		vol = ((last_vol + (128 + vol)) / (1+1));
 		if (--length & 1) *(buf1++) = vol;
-		last_outp = vol;
+		last_vol = vol;
 	}
 }
 

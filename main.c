@@ -11,26 +11,27 @@
 #include "emu/vecx.h"
 
 enum {
-	EMU_TIMER = 20 /* the emulators heart beats at 20 milliseconds */
+	EMU_TIMER		= 20, /* the emulators heart beats at 20 milliseconds */
+	DEFAULT_WIDTH	= 495,
+	DEFAULT_HEIGHT	= 615
 };
 
 static SDL_Window *window = NULL; 
 static SDL_Renderer *renderer = NULL;
 static SDL_Texture *overlay = NULL;
+static SDL_Texture *buffer = NULL;
 
 static long scl_factor;
 
+static void quit(void);
+
 static void render (void) {
 	size_t v;
-	if (!overlay)
-	{
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 128);
-		SDL_RenderFillRect(renderer, NULL);
-	}
 
-	if (overlay) {
-		SDL_RenderCopy (renderer, overlay, NULL, NULL);
-	}
+	SDL_SetRenderTarget(renderer, buffer);
+
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 128);
+	SDL_RenderFillRect(renderer, NULL);
 
 	for (v = 0; v < vector_draw_cnt; v++) {
 		Uint8 c = vectors[v].color * 256 / VECTREX_COLORS;
@@ -43,9 +44,21 @@ static void render (void) {
 		if (x0 == x1 && y0 == y1) {
 			/* point */
 			SDL_RenderDrawPoint(renderer, x0, y0);
-		} else {
+		}
+		else {
 			SDL_RenderDrawLine(renderer, x0, y0, x1, y1);
 		}
+	}
+
+	SDL_SetRenderTarget(renderer, NULL);
+	
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_RenderClear(renderer);
+
+	SDL_RenderCopy(renderer, buffer, NULL, NULL);
+
+	if (overlay) {
+		SDL_RenderCopy(renderer, overlay, NULL, NULL);
 	}
 
 	SDL_RenderPresent (renderer);
@@ -58,11 +71,11 @@ static void load_bios(void) {
 	FILE *f;
 	if (!(f = fopen (biosfilename, "rb"))) {
 		perror (biosfilename);
-		exit (EXIT_FAILURE);
+		quit();
 	}
 	if (fread(rom, 1, sizeof (rom), f) != sizeof (rom)){
 		fprintf (stderr, "Invalid bios length\n");
-		exit (EXIT_FAILURE);
+		quit();
 	}
 	fclose (f);
 }
@@ -73,7 +86,7 @@ static void load_cart (void) {
 	if (cartfilename) {
 		if (!(f = fopen (cartfilename, "rb"))) {
 			perror (cartfilename);
-			exit (EXIT_FAILURE);
+			quit();
 		}
 		fread (cart, 1, sizeof (cart), f);
 		fclose (f);
@@ -81,78 +94,15 @@ static void load_cart (void) {
 }
 
 static void load_state (char *name) {
-	size_t i;
-	FILE *f;
-	if (!(f = fopen(name, "rb"))) {
-		perror(name);
-		return;
-	}
-
-	void *cpu[] = { &CPU.reg_x, &CPU.reg_y, &CPU.reg_u, &CPU.reg_s, &CPU.reg_pc, &CPU.reg_a, &CPU.reg_b, &CPU.reg_dp, &CPU.reg_cc, &CPU.irq_status };
-
-	for (i = 0; i < sizeof(cpu) / sizeof(cpu[0]); i++)
-		fread(cpu[i], sizeof(uint16_t), 1, f);
-
-	void *via[] = { &VIA.ora, &VIA.orb, &VIA.ddra, &VIA.ddrb, &VIA.t1on, &VIA.t1int, &VIA.t1ll, &VIA.t1lh, &VIA.t1pb7, &VIA.t2on, &VIA.t2int, &VIA.t2ll, &VIA.sr, &VIA.srb, &VIA.src, &VIA.srclk, &VIA.acr, &VIA.pcr, &VIA.ifr, &VIA.ier, &VIA.ca2, &VIA.cb2h, &VIA.cb2s };
-
-	for (i = 0; i < sizeof(via) / sizeof(via[0]); i++)
-		fread(via[i], sizeof(uint8_t), 1, f);
-	fread(&VIA.t1c, sizeof(uint16_t), 1, f);
-	fread(&VIA.t2c, sizeof(uint16_t), 1, f);
-
-	void *psg0[] = { &PSG.ready, &PSG.EnvelopeA, &PSG.EnvelopeB, &PSG.EnvelopeC, &PSG.OutputA, &PSG.OutputB, &PSG.OutputC, &PSG.OutputN, &PSG.CountEnv, &PSG.Hold, &PSG.Alternate, &PSG.Attack, &PSG.Holding };
-	void *psg1[] = { &PSG.lastEnable, &PSG.PeriodA, &PSG.PeriodB, &PSG.PeriodC, &PSG.PeriodN, &PSG.PeriodE, &PSG.CountA, &PSG.CountB, &PSG.CountC, &PSG.CountN, &PSG.CountE, &PSG.VolA, &PSG.VolB, &PSG.VolC, &PSG.VolE, &PSG.RNG };
-	
-	for (i = 0; i < sizeof(psg0) / sizeof(psg0[0]); i++)
-		fread(psg0[i], sizeof(uint8_t), 1, f);
-	for (i = 0; i < sizeof(psg1) / sizeof(psg1[0]); i++)
-		fread(psg1[i], sizeof(uint32_t), 1, f);
-	fread(PSG.Regs, sizeof(uint8_t), 16, f);
-	fread(PSG.VolTable, sizeof(uint32_t), 32, f);
-
-	fread(ram, sizeof(uint8_t), 1000, f);
-
-	fclose(f);
 }
 
 static void save_state (char *name) {
-	size_t i;
-	FILE *f;
-	if (!(f = fopen(name, "wb"))) {
-		perror(name);
-		return;
-	}
-
-	void *cpu[] = { &CPU.reg_x, &CPU.reg_y, &CPU.reg_u, &CPU.reg_s, &CPU.reg_pc, &CPU.reg_a, &CPU.reg_b, &CPU.reg_dp, &CPU.reg_cc, &CPU.irq_status };
-
-	for (i = 0; i < sizeof(cpu) / sizeof(cpu[0]); i++)
-		fwrite(cpu[i], sizeof(uint16_t), 1, f);
-
-	void *via[] = { &VIA.ora, &VIA.orb, &VIA.ddra, &VIA.ddrb, &VIA.t1on, &VIA.t1int, &VIA.t1ll, &VIA.t1lh, &VIA.t1pb7, &VIA.t2on, &VIA.t2int, &VIA.t2ll, &VIA.sr, &VIA.srb, &VIA.src, &VIA.srclk, &VIA.acr, &VIA.pcr, &VIA.ifr, &VIA.ier, &VIA.ca2, &VIA.cb2h, &VIA.cb2s };
-
-	for (i = 0; i < sizeof(via) / sizeof(via[0]); i++)
-		fwrite(via[i], sizeof(uint8_t), 1, f);
-	fwrite(&VIA.t1c, sizeof(uint16_t), 1, f);
-	fwrite(&VIA.t2c, sizeof(uint16_t), 1, f);
-
-	void *psg0[] = { &PSG.ready, &PSG.EnvelopeA, &PSG.EnvelopeB, &PSG.EnvelopeC, &PSG.OutputA, &PSG.OutputB, &PSG.OutputC, &PSG.OutputN, &PSG.CountEnv, &PSG.Hold, &PSG.Alternate, &PSG.Attack, &PSG.Holding };
-	void *psg1[] = { &PSG.lastEnable, &PSG.PeriodA, &PSG.PeriodB, &PSG.PeriodC, &PSG.PeriodN, &PSG.PeriodE, &PSG.CountA, &PSG.CountB, &PSG.CountC, &PSG.CountN, &PSG.CountE, &PSG.VolA, &PSG.VolB, &PSG.VolC, &PSG.VolE, &PSG.RNG };
-
-	for (i = 0; i < sizeof(psg0) / sizeof(psg0[0]); i++)
-		fwrite(psg0[i], sizeof(uint8_t), 1, f);
-	for (i = 0; i < sizeof(psg1) / sizeof(psg1[0]); i++)
-		fwrite(psg1[i], sizeof(uint32_t), 1, f);
-	fwrite(PSG.Regs, sizeof(uint8_t), 16, f);
-	fwrite(PSG.VolTable, sizeof(uint32_t), 32, f);
-
-	fwrite(ram, sizeof(uint8_t), 1000, f);
-
-	fclose(f);
 }
 
 static void resize (void) {
 	int sclx, scly;
 	int screenx, screeny;
+	int width, height;
 	
 	SDL_GetWindowSize (window, &screenx, &screeny);
 
@@ -160,8 +110,12 @@ static void resize (void) {
 	scly = DAC_MAX_Y / screeny;
 
 	scl_factor = sclx > scly ? sclx : scly;
+	width = DAC_MAX_X / scl_factor;
+	height = DAC_MAX_Y / scl_factor;
 	
-	SDL_RenderSetLogicalSize (renderer, DAC_MAX_X / scl_factor, DAC_MAX_Y / scl_factor);
+	SDL_RenderSetLogicalSize (renderer, width, height);
+	SDL_DestroyTexture(buffer);
+	buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, width, height);
 }
 
 static int readevents (void) {
@@ -220,7 +174,7 @@ static int readevents (void) {
 	return 0;
 }
 
-void emuloop (void) {
+static void emuloop (void) {
 	Uint32 next_time = SDL_GetTicks () + EMU_TIMER;
 	vecx_reset ();
 	for (;;) {
@@ -238,44 +192,67 @@ void emuloop (void) {
 	}
 }
 
-void load_overlay (const char *filename) {
+static void load_overlay (const char *filename) {
 	SDL_Texture *image;
 	image = IMG_LoadTexture (renderer, filename);
 	if (image) {
 		overlay = image;
+		SDL_SetTextureBlendMode(image, SDL_BLENDMODE_BLEND);
+		SDL_SetTextureAlphaMod(image, 128);
 	} else {
 		fprintf (stderr, "IMG_Load: %s\n", IMG_GetError ());
 	}
-	SDL_SetTextureAlphaMod(image, 128);
 }
 
-int main (int argc, char *argv[]) {			
-	if (SDL_Init (SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
-		fprintf (stderr, "Failed to initialize SDL: %s\n", SDL_GetError ());
-		exit (EXIT_FAILURE);
+static int init(void)
+{
+	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0) {
+		fprintf(stderr, "Failed to initialize SDL: %s\n", SDL_GetError());
+		return 0;
 	}
 
-	window = SDL_CreateWindow ("Vecx", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 330 * 3 / 2, 410 * 3 / 2, SDL_WINDOW_RESIZABLE);
+	window = SDL_CreateWindow("Vecx", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, DEFAULT_WIDTH, DEFAULT_HEIGHT, SDL_WINDOW_RESIZABLE);
 	if (!window) {
-		fprintf (stderr, "Failed to create window: %s\n", SDL_GetError ());
-		SDL_Quit ();
-		exit (EXIT_FAILURE);
+		fprintf(stderr, "Failed to create window: %s\n", SDL_GetError());
+		return 0;
 	}
 
-	renderer = SDL_CreateRenderer (window, -1, SDL_RENDERER_ACCELERATED);
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_TARGETTEXTURE);
 	if (!renderer) {
-		fprintf (stderr, "Failed to create renderer: %s\n", SDL_GetError ());
-		SDL_DestroyWindow (window);
-		SDL_Quit ();
-		exit (EXIT_FAILURE);
+		fprintf(stderr, "Failed to create renderer: %s\n", SDL_GetError());
+		return 0;
 	}
+
+	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+
+	buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+	if (!buffer) {
+		fprintf(stderr, "Failed to create render buffer: %s\n", SDL_GetError());
+		return 0;
+	}
+
+	return 1;
+}
+
+static void quit (void)
+{
+	if (renderer)
+		SDL_DestroyRenderer(renderer);
+	if (window)
+		SDL_DestroyWindow(window);
+	SDL_Quit();
+	
+	exit(0);
+}
+
+int main (int argc, char *argv[]) {
+	if (!init())
+		quit();
 
 	if (argc > 1)
 		cartfilename = argv[1];
 	if (argc > 2)
 		load_overlay (argv[2]);
-
-	SDL_SetRenderDrawBlendMode (renderer, SDL_BLENDMODE_BLEND);
 
 	resize ();
 	load_bios ();
@@ -286,9 +263,7 @@ int main (int argc, char *argv[]) {
 	emuloop ();
 
 	e8910_done ();
-	SDL_DestroyRenderer (renderer);
-	SDL_DestroyWindow (window);
-	SDL_Quit ();
+	quit();
 
 	return 0;
 }
