@@ -20,6 +20,7 @@ static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 static SDL_Texture *overlay = NULL;
 static SDL_Texture *buffer = NULL;
+static SDL_Texture *buffer2 = NULL;
 
 static long scl_factor;
 
@@ -44,15 +45,18 @@ static void render (void) {
 		if (x0 == x1 && y0 == y1) {
 			/* point */
 			SDL_RenderDrawPoint(renderer, x0, y0);
-			SDL_RenderDrawPoint(renderer, x0+1, y0);
-			SDL_RenderDrawPoint(renderer, x0, y0+1);
-			SDL_RenderDrawPoint(renderer, x0+1, y0+1);
+			SDL_RenderDrawPoint(renderer, x0 + 1, y0);
+			SDL_RenderDrawPoint(renderer, x0, y0 + 1);
+			SDL_RenderDrawPoint(renderer, x0 + 1, y0 + 1);
 		}
 		else {
 			SDL_RenderDrawLine(renderer, x0, y0, x1, y1);
-			SDL_RenderDrawLine(renderer, x0+1, y0+1, x1+1, y1+1);
+			SDL_RenderDrawLine(renderer, x0 + 1, y0 + 1, x1 + 1, y1 + 1);
 		}
 	}
+	SDL_SetRenderTarget(renderer, buffer2);
+
+	SDL_RenderCopy(renderer, buffer, NULL, NULL);
 
 	SDL_SetRenderTarget(renderer, NULL);
 	
@@ -60,6 +64,7 @@ static void render (void) {
 	SDL_RenderClear(renderer);
 
 	SDL_RenderCopy(renderer, buffer, NULL, NULL);
+	SDL_RenderCopy(renderer, buffer2, NULL, NULL);
 
 	if (overlay) {
 		SDL_RenderCopy(renderer, overlay, NULL, NULL);
@@ -119,7 +124,11 @@ static void resize (void) {
 	
 	SDL_RenderSetLogicalSize (renderer, width, height);
 	SDL_DestroyTexture(buffer);
+	SDL_DestroyTexture(buffer2);
 	buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, width, height);
+	buffer2 = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, width / 2, height / 2);
+	SDL_SetTextureBlendMode(buffer2, SDL_BLENDMODE_BLEND);
+	SDL_SetTextureAlphaMod(buffer2, 128);
 }
 
 static int readevents (void) {
@@ -228,12 +237,7 @@ static int init(void)
 	}
 
 	SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-
-	buffer = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, DEFAULT_WIDTH, DEFAULT_HEIGHT);
-	if (!buffer) {
-		fprintf(stderr, "Failed to create render buffer: %s\n", SDL_GetError());
-		return 0;
-	}
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1");
 
 	return 1;
 }
