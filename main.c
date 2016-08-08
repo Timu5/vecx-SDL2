@@ -44,9 +44,13 @@ static void render (void) {
 		if (x0 == x1 && y0 == y1) {
 			/* point */
 			SDL_RenderDrawPoint(renderer, x0, y0);
+			SDL_RenderDrawPoint(renderer, x0+1, y0);
+			SDL_RenderDrawPoint(renderer, x0, y0+1);
+			SDL_RenderDrawPoint(renderer, x0+1, y0+1);
 		}
 		else {
 			SDL_RenderDrawLine(renderer, x0, y0, x1, y1);
+			SDL_RenderDrawLine(renderer, x0+1, y0+1, x1+1, y1+1);
 		}
 	}
 
