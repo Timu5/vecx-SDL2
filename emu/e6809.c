@@ -37,7 +37,7 @@ void (*e6809_write8) (uint16_t address, uint8_t data);
 
 /* obtain a particular condition code. returns 0 or 1. */
 
-__inline uint8_t get_cc (uint8_t flag)
+static __inline uint8_t get_cc (uint8_t flag)
 {
 	return (CPU.reg_cc / flag) & 1;
 }
@@ -46,7 +46,7 @@ __inline uint8_t get_cc (uint8_t flag)
  * value parameter must be either 0 or 1.
  */
 
-__inline void set_cc (uint8_t flag, uint8_t value)
+static __inline void set_cc (uint8_t flag, uint8_t value)
 {
 	CPU.reg_cc &= ~flag;
 	CPU.reg_cc |= value * flag;
@@ -54,7 +54,7 @@ __inline void set_cc (uint8_t flag, uint8_t value)
 
 /* test carry */
 
-__inline uint8_t test_c (uint16_t i0, uint16_t i1,
+static __inline uint8_t test_c (uint16_t i0, uint16_t i1,
 						uint16_t r, uint16_t sub)
 {
 	uint16_t flag;
@@ -69,14 +69,14 @@ __inline uint8_t test_c (uint16_t i0, uint16_t i1,
 
 /* test negative */
 
-__inline uint8_t test_n (uint16_t r)
+static __inline uint8_t test_n (uint16_t r)
 {
 	return (r >> 7) & 1;
 }
 
 /* test for zero in lower 8 bits */
 
-__inline uint8_t test_z8 (uint16_t r)
+static __inline uint8_t test_z8 (uint16_t r)
 {
 	uint16_t flag;
 
@@ -90,7 +90,7 @@ __inline uint8_t test_z8 (uint16_t r)
 
 /* test for zero in lower 16 bits */
 
-__inline uint8_t test_z16 (uint16_t r)
+static __inline uint8_t test_z16 (uint16_t r)
 {
 	uint16_t flag;
 
@@ -108,7 +108,7 @@ __inline uint8_t test_z16 (uint16_t r)
  * inputs.
  */
 
-__inline uint8_t test_v (uint16_t i0, uint16_t i1, uint16_t r)
+static __inline uint8_t test_v (uint16_t i0, uint16_t i1, uint16_t r)
 {
 	uint16_t flag;
 
@@ -119,12 +119,12 @@ __inline uint8_t test_v (uint16_t i0, uint16_t i1, uint16_t r)
 	return (uint8_t)flag;
 }
 
-__inline uint16_t get_reg_d (void)
+static __inline uint16_t get_reg_d (void)
 {
 	return (CPU.reg_a << 8) | (CPU.reg_b & 0xff);
 }
 
-__inline void set_reg_d (uint16_t value)
+static __inline void set_reg_d (uint16_t value)
 {
 	CPU.reg_a = (uint8_t)(value >> 8);
 	CPU.reg_b = (uint8_t)value;
@@ -134,7 +134,7 @@ __inline void set_reg_d (uint16_t value)
  * while the upper bits are all zero.
  */
 
-__inline uint8_t read8 (uint16_t address)
+static __inline uint8_t read8 (uint16_t address)
 {
 	return (*e6809_read8) (address);
 }
@@ -143,29 +143,29 @@ __inline uint8_t read8 (uint16_t address)
  * is written. the upper bits are ignored.
  */
 
-__inline void write8 (uint16_t address, uint8_t data)
+static __inline void write8 (uint16_t address, uint8_t data)
 {
 	(*e6809_write8) (address, data);
 }
 
-__inline uint16_t read16 (uint16_t address)
+static __inline uint16_t read16 (uint16_t address)
 {
 	return (read8 (address) << 8) | read8 (address + 1);
 }
 
-__inline void write16 (uint16_t address, uint16_t data)
+static __inline void write16 (uint16_t address, uint16_t data)
 {
 	write8 (address, (uint8_t)(data >> 8));
 	write8 (address + 1, (uint8_t)data);
 }
 
-__inline void push8 (uint16_t *sp, uint8_t data)
+static __inline void push8 (uint16_t *sp, uint8_t data)
 {
 	(*sp)--;
 	write8 (*sp, data);
 }
 
-__inline uint8_t pull8 (uint16_t *sp)
+static __inline uint8_t pull8 (uint16_t *sp)
 {
 	uint8_t data;
 
@@ -175,13 +175,13 @@ __inline uint8_t pull8 (uint16_t *sp)
 	return data;
 }
 
-__inline void push16 (uint16_t *sp, uint16_t data)
+static __inline void push16 (uint16_t *sp, uint16_t data)
 {
 	push8 (sp, (uint8_t)data);
 	push8 (sp, (uint8_t)(data >> 8));
 }
 
-__inline uint16_t pull16 (uint16_t *sp)
+static __inline uint16_t pull16 (uint16_t *sp)
 {
 	uint16_t tmp = pull8 (sp);
 	return (tmp << 8) | pull8 (sp);
@@ -189,14 +189,14 @@ __inline uint16_t pull16 (uint16_t *sp)
 
 /* read a byte from the address pointed to by the pc */
 
-__inline uint8_t pc_read8 (void)
+static __inline uint8_t pc_read8 (void)
 {
 	return read8(CPU.reg_pc++);
 }
 
 /* read a word from the address pointed to by the pc */
 
-__inline uint16_t pc_read16 (void)
+static __inline uint16_t pc_read16 (void)
 {
 	uint16_t data;
 
@@ -208,7 +208,7 @@ __inline uint16_t pc_read16 (void)
 
 /* sign extend an 8-bit quantity into a 16-bit quantity */
 
-__inline uint16_t sign_extend (uint16_t data)
+static __inline uint16_t sign_extend (uint16_t data)
 {
 	return (~(data & 0x80) + 1) | (data & 0xff);
 }
@@ -218,7 +218,7 @@ __inline uint16_t sign_extend (uint16_t data)
  * instruction itself.
  */
 
-__inline uint16_t ea_direct (void)
+static __inline uint16_t ea_direct (void)
 {
 	return (CPU.reg_dp << 8) | pc_read8 ();
 }
@@ -227,14 +227,14 @@ __inline uint16_t ea_direct (void)
  * the instruction.
  */
 
-__inline uint16_t ea_extended (void)
+static __inline uint16_t ea_extended (void)
 {
 	return pc_read16 ();
 }
 
 /* indexed addressing */
 
-__inline uint16_t ea_indexed (uint16_t *cycles)
+static __inline uint16_t ea_indexed (uint16_t *cycles)
 {
 	uint16_t r, op;
 	uint16_t ea = 0;
@@ -462,7 +462,7 @@ __inline uint16_t ea_indexed (uint16_t *cycles)
  * essentially (0 - data).
  */
 
-__inline uint16_t inst_neg (uint16_t data)
+static __inline uint16_t inst_neg (uint16_t data)
 {
 	uint16_t i0, i1, r;
 
@@ -481,7 +481,7 @@ __inline uint16_t inst_neg (uint16_t data)
 
 /* instruction: com */
 
-__inline uint16_t inst_com (uint16_t data)
+static __inline uint16_t inst_com (uint16_t data)
 {
 	uint16_t r;
 
@@ -499,7 +499,7 @@ __inline uint16_t inst_com (uint16_t data)
  * cannot be faked as an add or substract.
  */
 
-__inline uint16_t inst_lsr (uint16_t data)
+static __inline uint16_t inst_lsr (uint16_t data)
 {
 	uint16_t r;
 
@@ -516,7 +516,7 @@ __inline uint16_t inst_lsr (uint16_t data)
  * cannot be faked as an add or substract.
  */
 
-__inline uint16_t inst_ror (uint16_t data)
+static __inline uint16_t inst_ror (uint16_t data)
 {
 	uint16_t r, c;
 
@@ -534,7 +534,7 @@ __inline uint16_t inst_ror (uint16_t data)
  * cannot be faked as an add or substract.
  */
 
-__inline uint16_t inst_asr (uint16_t data)
+static __inline uint16_t inst_asr (uint16_t data)
 {
 	uint16_t r;
 
@@ -551,7 +551,7 @@ __inline uint16_t inst_asr (uint16_t data)
  * essentially (data + data). simple addition.
  */
 
-__inline uint16_t inst_asl (uint16_t data)
+static __inline uint16_t inst_asl (uint16_t data)
 {
 	uint16_t i0, i1, r;
 
@@ -572,7 +572,7 @@ __inline uint16_t inst_asl (uint16_t data)
  * essentially (data + data + carry). addition with carry.
  */
 
-__inline uint16_t inst_rol (uint16_t data)
+static __inline uint16_t inst_rol (uint16_t data)
 {
 	uint16_t i0, i1, c, r;
 
@@ -593,7 +593,7 @@ __inline uint16_t inst_rol (uint16_t data)
  * essentially (data - 1).
  */
 
-__inline uint16_t inst_dec (uint16_t data)
+static __inline uint16_t inst_dec (uint16_t data)
 {
 	uint16_t i0, i1, r;
 
@@ -612,7 +612,7 @@ __inline uint16_t inst_dec (uint16_t data)
  * essentially (data + 1).
  */
 
-__inline uint16_t inst_inc (uint16_t data)
+static __inline uint16_t inst_inc (uint16_t data)
 {
 	uint16_t i0, i1, r;
 
@@ -629,14 +629,14 @@ __inline uint16_t inst_inc (uint16_t data)
 
 /* instruction: tst */
 
-__inline void inst_tst8 (uint8_t data)
+static __inline void inst_tst8 (uint8_t data)
 {
 	set_cc (FLAG_N, test_n (data));
 	set_cc (FLAG_Z, test_z8 (data));
 	set_cc (FLAG_V, 0);
 }
 
-__inline void inst_tst16 (uint16_t data)
+static __inline void inst_tst16 (uint16_t data)
 {
 	set_cc (FLAG_N, test_n (data >> 8));
 	set_cc (FLAG_Z, test_z16 (data));
@@ -645,7 +645,7 @@ __inline void inst_tst16 (uint16_t data)
 
 /* instruction: clr */
 
-__inline void inst_clr (void)
+static __inline void inst_clr (void)
 {
 	set_cc (FLAG_N, 0);
 	set_cc (FLAG_Z, 1);
@@ -655,7 +655,7 @@ __inline void inst_clr (void)
 
 /* instruction: suba/subb */
 
-__inline uint8_t inst_sub8 (uint8_t data0, uint8_t data1)
+static __inline uint8_t inst_sub8 (uint8_t data0, uint8_t data1)
 {
 	uint8_t i0, i1, r;
 
@@ -676,7 +676,7 @@ __inline uint8_t inst_sub8 (uint8_t data0, uint8_t data1)
  * only 8-bit version, 16-bit version not needed.
  */
 
-__inline uint8_t inst_sbc (uint8_t data0, uint8_t data1)
+static __inline uint8_t inst_sbc (uint8_t data0, uint8_t data1)
 {
 	uint8_t i0, i1, c, r;
 
@@ -698,7 +698,7 @@ __inline uint8_t inst_sbc (uint8_t data0, uint8_t data1)
  * only 8-bit version, 16-bit version not needed.
  */
 
-__inline uint8_t inst_and (uint8_t data0, uint8_t data1)
+static __inline uint8_t inst_and (uint8_t data0, uint8_t data1)
 {
 	uint8_t r;
 
@@ -713,7 +713,7 @@ __inline uint8_t inst_and (uint8_t data0, uint8_t data1)
  * only 8-bit version, 16-bit version not needed.
  */
 
-__inline uint8_t inst_eor (uint8_t data0, uint8_t data1)
+static __inline uint8_t inst_eor (uint8_t data0, uint8_t data1)
 {
 	uint8_t r;
 
@@ -728,7 +728,7 @@ __inline uint8_t inst_eor (uint8_t data0, uint8_t data1)
  * only 8-bit version, 16-bit version not needed.
  */
 
-__inline uint8_t inst_adc (uint8_t data0, uint8_t data1)
+static __inline uint8_t inst_adc (uint8_t data0, uint8_t data1)
 {
 	uint8_t i0, i1, c, r;
 
@@ -750,7 +750,7 @@ __inline uint8_t inst_adc (uint8_t data0, uint8_t data1)
  * only 8-bit version, 16-bit version not needed.
  */
 
-__inline uint8_t inst_or (uint8_t data0, uint8_t data1)
+static __inline uint8_t inst_or (uint8_t data0, uint8_t data1)
 {
 	uint8_t r;
 
@@ -763,7 +763,7 @@ __inline uint8_t inst_or (uint8_t data0, uint8_t data1)
 
 /* instruction: adda/addb */
 
-__inline uint8_t inst_add8 (uint8_t data0, uint8_t data1)
+static __inline uint8_t inst_add8 (uint8_t data0, uint8_t data1)
 {
 	uint16_t i0, i1, r;
 
@@ -782,7 +782,7 @@ __inline uint8_t inst_add8 (uint8_t data0, uint8_t data1)
 
 /* instruction: addd */
 
-__inline uint16_t inst_add16 (uint16_t data0, uint16_t data1)
+static __inline uint16_t inst_add16 (uint16_t data0, uint16_t data1)
 {
 	uint16_t i0, i1, r;
 
@@ -800,7 +800,7 @@ __inline uint16_t inst_add16 (uint16_t data0, uint16_t data1)
 
 /* instruction: subd */
 
-__inline uint16_t inst_sub16 (uint16_t data0, uint16_t data1)
+static __inline uint16_t inst_sub16 (uint16_t data0, uint16_t data1)
 {
 	uint16_t i0, i1, r;
 
@@ -818,7 +818,7 @@ __inline uint16_t inst_sub16 (uint16_t data0, uint16_t data1)
 
 /* instruction: 8-bit offset branch */
 
-__inline void inst_bra8 (uint16_t test, uint16_t op, uint16_t *cycles)
+static __inline void inst_bra8 (uint16_t test, uint16_t op, uint16_t *cycles)
 {
 	uint16_t offset, mask;
 
@@ -834,7 +834,7 @@ __inline void inst_bra8 (uint16_t test, uint16_t op, uint16_t *cycles)
 
 /* instruction: 16-bit offset branch */
 
-__inline void inst_bra16 (uint16_t test, uint16_t op, uint16_t *cycles)
+static __inline void inst_bra16 (uint16_t test, uint16_t op, uint16_t *cycles)
 {
 	uint16_t offset, mask;
 
@@ -850,7 +850,7 @@ __inline void inst_bra16 (uint16_t test, uint16_t op, uint16_t *cycles)
 
 /* instruction: pshs/pshu */
 
-__inline void inst_psh (uint16_t op, uint16_t *sp,
+static __inline void inst_psh (uint16_t op, uint16_t *sp,
 					   uint16_t data, uint16_t *cycles)
 {
 	if (op & 0x80) {
@@ -897,7 +897,7 @@ __inline void inst_psh (uint16_t op, uint16_t *sp,
 
 /* instruction: puls/pulu */
 
-__inline void inst_pul (uint16_t op, uint16_t *sp, uint16_t *osp,
+static __inline void inst_pul (uint16_t op, uint16_t *sp, uint16_t *osp,
 					   uint16_t *cycles)
 {
 	if (op & 0x01) {
@@ -942,7 +942,7 @@ __inline void inst_pul (uint16_t op, uint16_t *sp, uint16_t *osp,
 	}
 }
 
-__inline uint16_t exgtfr_read (uint16_t reg)
+static __inline uint16_t exgtfr_read (uint16_t reg)
 {
 	uint16_t data;
 
@@ -986,7 +986,7 @@ __inline uint16_t exgtfr_read (uint16_t reg)
 	return data;
 }
 
-__inline void exgtfr_write (uint16_t reg, uint16_t data)
+static __inline void exgtfr_write (uint16_t reg, uint16_t data)
 {
 	switch (reg) {
 	case 0x0:
@@ -1027,7 +1027,7 @@ __inline void exgtfr_write (uint16_t reg, uint16_t data)
 
 /* instruction: exg */
 
-__inline void inst_exg (void)
+static __inline void inst_exg (void)
 {
 	uint16_t op, tmp;
 
@@ -1040,7 +1040,7 @@ __inline void inst_exg (void)
 
 /* instruction: tfr */
 
-__inline void inst_tfr (void)
+static __inline void inst_tfr (void)
 {
 	uint16_t op;
 
