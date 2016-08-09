@@ -2,24 +2,21 @@
 #define __E8910_H
 
 typedef struct {
-	uint8_t ready;
-	uint8_t Regs[16];
-	int32_t lastEnable;
-	int32_t PeriodA, PeriodB, PeriodC, PeriodN, PeriodE;
-	int32_t CountA, CountB, CountC, CountN, CountE;
-	uint32_t VolA, VolB, VolC, VolE;
-	uint8_t EnvelopeA, EnvelopeB, EnvelopeC;
-	uint8_t OutputA, OutputB, OutputC, OutputN;
-	int8_t CountEnv;
-	uint8_t Hold, Alternate, Attack, Holding;
+	uint8_t regs[16];
+	int32_t per_a, per_b, per_c, per_n, per_e; /* Period */
+	int32_t cnt_a, cnt_b, cnt_c, cnt_n, cnt_e; /* count */
+	uint32_t vol_a, vol_b, vol_c, vol_e;
+	uint8_t env_a, env_b, env_c; /* Envelope */
+	uint8_t out_a, out_b, out_c, out_n;
+	int8_t cnt_env;
+	uint8_t hold, alternate, attack, holding;
 	int32_t RNG;
-	uint32_t VolTable[32];
 
 } AY8910;
 
 extern AY8910 PSG;
 
-#define e8910_read(x) PSG.Regs[x]
+#define e8910_read(x) PSG.regs[x]
 
 void e8910_reset (void);
 void e8910_init (void);

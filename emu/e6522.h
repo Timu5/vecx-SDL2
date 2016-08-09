@@ -3,10 +3,8 @@
 
 typedef struct {
 	/* the via 6522 registers */
-	uint8_t ora;
-	uint8_t orb;
-	uint8_t ddra;
-	uint8_t ddrb;
+	uint8_t ora, orb;
+	uint8_t ddra, ddrb;
 	uint8_t t1on;  /* is timer 1 on? */
 	uint8_t t1int; /* are timer 1 interrupts allowed? */
 	uint16_t t1c;
