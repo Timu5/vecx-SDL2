@@ -11,7 +11,12 @@ Requirements
 Usage
 -----
 
-vecx [cart_file] [overlay_file]
+Usage: vecx [options] [cart_file]
+Options:
+  --help            Display this help message
+  --bios <file>     Load bios file
+  --overlay <file>  Load overlay file
+  --fullscreen      Launch in fullscreen mode
 
 KEY     | ACTION
 ------- | ------
