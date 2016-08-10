@@ -236,14 +236,13 @@ static __inline uint16_t ea_extended (void)
 
 static __inline uint16_t ea_indexed (uint16_t *cycles)
 {
-	uint16_t r, op;
 	uint16_t ea = 0;
 
 	/* post byte */
 
-	op = pc_read8 ();
+	uint16_t op = pc_read8 ();
 
-	r = (op >> 5) & 3;
+	uint16_t r = (op >> 5) & 3;
 
 	switch (op) {
 	case 0x00: case 0x01: case 0x02: case 0x03:
@@ -464,11 +463,9 @@ static __inline uint16_t ea_indexed (uint16_t *cycles)
 
 static __inline uint16_t inst_neg (uint16_t data)
 {
-	uint16_t i0, i1, r;
-
-	i0 = 0;
-	i1 = ~data;
-	r = i0 + i1 + 1;
+	uint16_t i0 = 0;
+	uint16_t i1 = ~data;
+	uint16_t r = i0 + i1 + 1;
 
 	set_cc (FLAG_H, test_c (i0 << 4, i1 << 4, r << 4, 0));
 	set_cc (FLAG_N, test_n (r));
@@ -483,9 +480,7 @@ static __inline uint16_t inst_neg (uint16_t data)
 
 static __inline uint16_t inst_com (uint16_t data)
 {
-	uint16_t r;
-
-	r = ~data;
+	uint16_t r = ~data;
 
 	set_cc (FLAG_N, test_n (r));
 	set_cc (FLAG_Z, test_z8 (r));
@@ -501,9 +496,7 @@ static __inline uint16_t inst_com (uint16_t data)
 
 static __inline uint16_t inst_lsr (uint16_t data)
 {
-	uint16_t r;
-
-	r = (data >> 1) & 0x7f;
+	uint16_t r = (data >> 1) & 0x7f;
 
 	set_cc (FLAG_N, 0);
 	set_cc (FLAG_Z, test_z8 (r));
@@ -518,10 +511,8 @@ static __inline uint16_t inst_lsr (uint16_t data)
 
 static __inline uint16_t inst_ror (uint16_t data)
 {
-	uint16_t r, c;
-
-	c = get_cc (FLAG_C);
-	r = ((data >> 1) & 0x7f) | (c << 7);
+	uint16_t c = get_cc (FLAG_C);
+	uint16_t r = ((data >> 1) & 0x7f) | (c << 7);
 
 	set_cc (FLAG_N, test_n (r));
 	set_cc (FLAG_Z, test_z8 (r));
@@ -536,9 +527,7 @@ static __inline uint16_t inst_ror (uint16_t data)
 
 static __inline uint16_t inst_asr (uint16_t data)
 {
-	uint16_t r;
-
-	r = ((data >> 1) & 0x7f) | (data & 0x80);
+	uint16_t r = ((data >> 1) & 0x7f) | (data & 0x80);
 
 	set_cc (FLAG_N, test_n (r));
 	set_cc (FLAG_Z, test_z8 (r));
@@ -553,11 +542,9 @@ static __inline uint16_t inst_asr (uint16_t data)
 
 static __inline uint16_t inst_asl (uint16_t data)
 {
-	uint16_t i0, i1, r;
-
-	i0 = data;
-	i1 = data;
-	r = i0 + i1;
+	uint16_t i0 = data;
+	uint16_t i1 = data;
+	uint16_t r = i0 + i1;
 
 	set_cc (FLAG_H, test_c (i0 << 4, i1 << 4, r << 4, 0));
 	set_cc (FLAG_N, test_n (r));
@@ -574,12 +561,10 @@ static __inline uint16_t inst_asl (uint16_t data)
 
 static __inline uint16_t inst_rol (uint16_t data)
 {
-	uint16_t i0, i1, c, r;
-
-	i0 = data;
-	i1 = data;
-	c = get_cc (FLAG_C);
-	r = i0 + i1 + c;
+	uint16_t i0 = data;
+	uint16_t i1 = data;
+	uint16_t c = get_cc (FLAG_C);
+	uint16_t r = i0 + i1 + c;
 
 	set_cc (FLAG_N, test_n (r));
 	set_cc (FLAG_Z, test_z8 (r));
@@ -595,11 +580,9 @@ static __inline uint16_t inst_rol (uint16_t data)
 
 static __inline uint16_t inst_dec (uint16_t data)
 {
-	uint16_t i0, i1, r;
-
-	i0 = data;
-	i1 = 0xff;
-	r = i0 + i1;
+	uint16_t i0 = data;
+	uint16_t i1 = 0xff;
+	uint16_t r = i0 + i1;
 
 	set_cc (FLAG_N, test_n (r));
 	set_cc (FLAG_Z, test_z8 (r));
@@ -614,11 +597,9 @@ static __inline uint16_t inst_dec (uint16_t data)
 
 static __inline uint16_t inst_inc (uint16_t data)
 {
-	uint16_t i0, i1, r;
-
-	i0 = data;
-	i1 = 1;
-	r = i0 + i1;
+	uint16_t i0 = data;
+	uint16_t i1 = 1;
+	uint16_t r = i0 + i1;
 
 	set_cc (FLAG_N, test_n (r));
 	set_cc (FLAG_Z, test_z8 (r));
@@ -657,11 +638,9 @@ static __inline void inst_clr (void)
 
 static __inline uint8_t inst_sub8 (uint8_t data0, uint8_t data1)
 {
-	uint8_t i0, i1, r;
-
-	i0 = data0;
-	i1 = ~data1;
-	r = i0 + i1 + 1;
+	uint8_t i0 = data0;
+	uint8_t i1 = ~data1;
+	uint8_t r = i0 + i1 + 1;
 
 	set_cc (FLAG_H, test_c (i0 << 4, i1 << 4, r << 4, 0));
 	set_cc (FLAG_N, test_n (r));
@@ -678,12 +657,10 @@ static __inline uint8_t inst_sub8 (uint8_t data0, uint8_t data1)
 
 static __inline uint8_t inst_sbc (uint8_t data0, uint8_t data1)
 {
-	uint8_t i0, i1, c, r;
-
-	i0 = data0;
-	i1 = ~data1;
-	c = 1 - get_cc (FLAG_C);
-	r = i0 + i1 + c;
+	uint8_t i0 = data0;
+	uint8_t i1 = ~data1;
+	uint8_t c = 1 - get_cc (FLAG_C);
+	uint8_t r = i0 + i1 + c;
 
 	set_cc (FLAG_H, test_c (i0 << 4, i1 << 4, r << 4, 0));
 	set_cc (FLAG_N, test_n (r));
@@ -700,9 +677,7 @@ static __inline uint8_t inst_sbc (uint8_t data0, uint8_t data1)
 
 static __inline uint8_t inst_and (uint8_t data0, uint8_t data1)
 {
-	uint8_t r;
-
-	r = data0 & data1;
+	uint8_t r = data0 & data1;
 
 	inst_tst8 (r);
 
@@ -715,9 +690,7 @@ static __inline uint8_t inst_and (uint8_t data0, uint8_t data1)
 
 static __inline uint8_t inst_eor (uint8_t data0, uint8_t data1)
 {
-	uint8_t r;
-
-	r = data0 ^ data1;
+	uint8_t r = data0 ^ data1;
 
 	inst_tst8 (r);
 
@@ -730,12 +703,10 @@ static __inline uint8_t inst_eor (uint8_t data0, uint8_t data1)
 
 static __inline uint8_t inst_adc (uint8_t data0, uint8_t data1)
 {
-	uint8_t i0, i1, c, r;
-
-	i0 = data0;
-	i1 = data1;
-	c = get_cc (FLAG_C);
-	r = i0 + i1 + c;
+	uint8_t i0 = data0;
+	uint8_t i1 = data1;
+	uint8_t c = get_cc (FLAG_C);
+	uint8_t r = i0 + i1 + c;
 
 	set_cc (FLAG_H, test_c (i0 << 4, i1 << 4, r << 4, 0));
 	set_cc (FLAG_N, test_n (r));
@@ -752,9 +723,7 @@ static __inline uint8_t inst_adc (uint8_t data0, uint8_t data1)
 
 static __inline uint8_t inst_or (uint8_t data0, uint8_t data1)
 {
-	uint8_t r;
-
-	r = data0 | data1;
+	uint8_t r = data0 | data1;
 
 	inst_tst8 (r);
 
@@ -765,11 +734,9 @@ static __inline uint8_t inst_or (uint8_t data0, uint8_t data1)
 
 static __inline uint8_t inst_add8 (uint8_t data0, uint8_t data1)
 {
-	uint16_t i0, i1, r;
-
-	i0 = data0;
-	i1 = data1;
-	r = i0 + i1;
+	uint8_t i0 = data0;
+	uint8_t i1 = data1;
+	uint8_t r = i0 + i1;
 
 	set_cc (FLAG_H, test_c (i0 << 4, i1 << 4, r << 4, 0));
 	set_cc (FLAG_N, test_n (r));
@@ -784,11 +751,9 @@ static __inline uint8_t inst_add8 (uint8_t data0, uint8_t data1)
 
 static __inline uint16_t inst_add16 (uint16_t data0, uint16_t data1)
 {
-	uint16_t i0, i1, r;
-
-	i0 = data0;
-	i1 = data1;
-	r = i0 + i1;
+	uint16_t i0 = data0;
+	uint16_t i1 = data1;
+	uint16_t r = i0 + i1;
 
 	set_cc (FLAG_N, test_n (r >> 8));
 	set_cc (FLAG_Z, test_z16 (r));
@@ -802,11 +767,9 @@ static __inline uint16_t inst_add16 (uint16_t data0, uint16_t data1)
 
 static __inline uint16_t inst_sub16 (uint16_t data0, uint16_t data1)
 {
-	uint16_t i0, i1, r;
-
-	i0 = data0;
-	i1 = ~data1;
-	r = i0 + i1 + 1;
+	uint16_t i0 = data0;
+	uint16_t i1 = ~data1;
+	uint16_t r = i0 + i1 + 1;
 
 	set_cc (FLAG_N, test_n (r >> 8));
 	set_cc (FLAG_Z, test_z16 (r));
@@ -820,13 +783,11 @@ static __inline uint16_t inst_sub16 (uint16_t data0, uint16_t data1)
 
 static __inline void inst_bra8 (uint16_t test, uint16_t op, uint16_t *cycles)
 {
-	uint16_t offset, mask;
-
-	offset = pc_read8 ();
+	uint16_t offset = pc_read8 ();
 
 	/* trying to avoid an if statement */
 
-	mask = (test ^ (op & 1)) - 1; /* 0xffff when taken, 0 when not taken */
+	uint16_t mask = (test ^ (op & 1)) - 1; /* 0xffff when taken, 0 when not taken */
 	CPU.reg_pc += sign_extend (offset) & mask;
 
 	*cycles += 3;
@@ -836,13 +797,11 @@ static __inline void inst_bra8 (uint16_t test, uint16_t op, uint16_t *cycles)
 
 static __inline void inst_bra16 (uint16_t test, uint16_t op, uint16_t *cycles)
 {
-	uint16_t offset, mask;
-
-	offset = pc_read16 ();
+	uint16_t offset = pc_read16 ();
 
 	/* trying to avoid an if statement */
 
-	mask = (test ^ (op & 1)) - 1; /* 0xffff when taken, 0 when not taken */
+	uint16_t mask = (test ^ (op & 1)) - 1; /* 0xffff when taken, 0 when not taken */
 	CPU.reg_pc += offset & mask;
 
 	*cycles += 5 - mask;
@@ -1029,11 +988,9 @@ static __inline void exgtfr_write (uint16_t reg, uint16_t data)
 
 static __inline void inst_exg (void)
 {
-	uint16_t op, tmp;
+	uint16_t op = pc_read8 ();
 
-	op = pc_read8 ();
-
-	tmp = exgtfr_read (op & 0xf);
+	uint16_t tmp = exgtfr_read (op & 0xf);
 	exgtfr_write (op & 0xf, exgtfr_read (op >> 4));
 	exgtfr_write (op >> 4, tmp);
 }
@@ -1042,9 +999,7 @@ static __inline void inst_exg (void)
 
 static __inline void inst_tfr (void)
 {
-	uint16_t op;
-
-	op = pc_read8 ();
+	uint16_t op = pc_read8 ();
 
 	exgtfr_write (op & 0xf, exgtfr_read (op >> 4));
 }
@@ -1078,9 +1033,7 @@ void e6809_reset (void)
 
 uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 {
-	uint16_t op;
 	uint16_t cycles = 0;
-	uint16_t ea, i0, i1, r;
 
 	if (irq_f) {
 		if (get_cc (FLAG_F) == 0) {
@@ -1125,7 +1078,8 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 		return cycles + 1;
 	}
 
-	op = pc_read8 ();
+	uint16_t op = pc_read8 ();
+	uint16_t ea, i0, i1, r;
 
 	switch (op) {
 	/* page 0 instructions */
@@ -2575,4 +2529,3 @@ uint16_t e6809_sstep (uint16_t irq_i, uint16_t irq_f)
 
 	return cycles;
 }
-

@@ -21,13 +21,13 @@ enum {
 };
 
 typedef struct vector_type {
-	long x0, y0; /* start coordinate */
-	long x1, y1; /* end coordinate */
+	int32_t x0, y0; /* start coordinate */
+	int32_t x1, y1; /* end coordinate */
 
 				 /* color [0, VECTREX_COLORS - 1], if color = VECTREX_COLORS, then this is
 				 * an invalid entry and must be ignored.
 				 */
-	unsigned char color;
+	uint8_t color;
 } vector_t;
 
 extern void (*vecx_render) (void);
@@ -43,6 +43,6 @@ extern vector_t vectors[];
 
 void vecx_input (uint8_t key, uint8_t value);
 void vecx_reset (void);
-void vecx_emu (long cycles);
+void vecx_emu (int32_t cycles);
 
 #endif

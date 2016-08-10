@@ -197,11 +197,9 @@ void vecx_input (uint8_t key, uint8_t value)
 
 void vecx_reset (void)
 {
-	size_t r;
-
 	/* ram */
 
-	for (r = 0; r < 1024; r++) {
+	for (int r = 0; r < 1024; r++) {
 		ram[r] = (uint8_t)r;
 	}
 
@@ -229,22 +227,20 @@ void vecx_reset (void)
 	e6809_reset ();
 }
 
-void vecx_emu (long cycles)
+void vecx_emu (int32_t cycles)
 {
-	unsigned c, icycles;
-
 	while (cycles > 0) {
-		icycles = e6809_sstep (VIA.ifr & 0x80, 0);
+		uint16_t icycles = e6809_sstep (VIA.ifr & 0x80, 0);
 
-		for (c = 0; c < icycles; c++) {
+		for (uint16_t c = 0; c < icycles; c++) {
 			via_sstep0 ();
 			dac_sstep ();
 			via_sstep1 ();
 		}
 
-		cycles -= (long) icycles;
+		cycles -= (int32_t) icycles;
 
-		fcycles -= (long) icycles;
+		fcycles -= (int32_t) icycles;
 
 		if (fcycles < 0) {
 

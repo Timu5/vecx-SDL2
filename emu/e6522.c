@@ -286,7 +286,7 @@ void via_write (uint16_t address, uint8_t data)
 
 void via_sstep0 (void)
 {
-	unsigned t2shift;
+	uint8_t t2shift;
 
 	if (VIA.t1on) {
 		VIA.t1c--;

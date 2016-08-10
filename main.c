@@ -34,14 +34,12 @@ static char *overlay_filename = NULL;
 static char fullscreen = 0;
 
 static void render (void) {
-	size_t v;
-
 	SDL_SetRenderTarget(renderer, buffer);
 	{
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 128);
 		SDL_RenderFillRect(renderer, NULL);
 
-		for (v = 0; v < vector_draw_cnt; v++) {
+		for (size_t v = 0; v < vector_draw_cnt; v++) {
 			Uint8 c = vectors[v].color * 256 / VECTREX_COLORS;
 			int x0 = vectors[v].x0 / scl_factor;
 			int y0 = vectors[v].y0 / scl_factor;
@@ -97,9 +95,9 @@ static void load_bios(void) {
 }
 
 static void load_cart (void) {
-	FILE *f;
 	memset (cart, 0, sizeof (cart));
 	if (cart_filename) {
+		FILE *f;
 		if (!(f = fopen (cart_filename, "rb"))) {
 			perror (cart_filename);
 		}
@@ -209,10 +207,9 @@ static void emuloop (void) {
 }
 
 static void load_overlay () {
-	SDL_Texture *image;
 	if (overlay_filename)
 	{
-		image = IMG_LoadTexture(renderer, overlay_filename);
+		SDL_Texture *image = IMG_LoadTexture(renderer, overlay_filename);
 		if (image) {
 			overlay = image;
 			SDL_SetTextureBlendMode(image, SDL_BLENDMODE_BLEND);
@@ -265,8 +262,7 @@ static void quit (void)
 
 void parse_args (int argc, char* argv[])
 {
-	int i;
-	for (i = 1; i < argc; i++)
+	for (int i = 1; i < argc; i++)
 	{
 		if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0)
 		{

@@ -408,8 +408,7 @@ static void e8910_callback (void *userdata, uint8_t *stream, int length)
 
 void e8910_reset(void)
 {
-	uint8_t r;
-	for (r = 0; r < 16; r++) {
+	for (uint8_t r = 0; r < 16; r++) {
 		e8910_write(r, 0);
 	}
 
