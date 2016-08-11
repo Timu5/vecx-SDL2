@@ -1,9 +1,10 @@
 #ifndef __VECX_H
 #define __VECX_H
 
-enum {
-	VECTREX_MHZ		= 1500000, /* speed of the vectrex being emulated */
-	VECTREX_COLORS  = 128,     /* number of possible colors ... grayscale */
+enum
+{
+	VECTREX_MHZ = 1500000, /* speed of the vectrex being emulated */
+	VECTREX_COLORS = 128,     /* number of possible colors ... grayscale */
 
 	VECTREX_PAD1_BUTTON1 = 0,
 	VECTREX_PAD1_BUTTON2 = 1,
@@ -20,7 +21,8 @@ enum {
 	VECTREX_PAD2_Y = 11,
 };
 
-typedef struct vector_type {
+typedef struct vector_type
+{
 	int32_t x0, y0; /* start coordinate */
 	int32_t x1, y1; /* end coordinate */
 
@@ -30,7 +32,7 @@ typedef struct vector_type {
 	uint8_t color;
 } vector_t;
 
-extern void (*vecx_render) (void);
+extern void(*vecx_render) (void);
 
 extern uint8_t rom[8192];
 extern uint8_t cart[32768];
@@ -41,8 +43,8 @@ extern uint8_t snd_select;
 extern size_t vector_draw_cnt;
 extern vector_t vectors[];
 
-void vecx_input (uint8_t key, uint8_t value);
-void vecx_reset (void);
-void vecx_emu (int32_t cycles);
+void vecx_input(uint8_t key, uint8_t value);
+void vecx_reset(void);
+void vecx_emu(int32_t cycles);
 
 #endif

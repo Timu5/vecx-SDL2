@@ -6,7 +6,8 @@ enum {
 	DAC_MAX_Y = 41000
 };
 
-typedef struct {
+typedef struct
+{
 	/* analog devices */
 
 	uint16_t rsh;  /* zero ref sample and hold */

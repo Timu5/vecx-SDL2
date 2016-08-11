@@ -1,7 +1,8 @@
 #ifndef __E6522_H
 #define __E6522_H
 
-typedef struct {
+typedef struct
+{
 	/* the via 6522 registers */
 	uint8_t ora, orb;
 	uint8_t ddra, ddrb;
@@ -30,15 +31,15 @@ typedef struct {
 
 extern VIA6522 VIA;
 
-extern uint8_t (*via_read8_port_a) ();
-extern uint8_t (*via_read8_port_b) ();
-extern void (*via_write8_port_a) (uint8_t data);
-extern void (*via_write8_port_b) (uint8_t data);
+extern uint8_t(*via_read8_port_a) ();
+extern uint8_t(*via_read8_port_b) ();
+extern void(*via_write8_port_a) (uint8_t data);
+extern void(*via_write8_port_b) (uint8_t data);
 
 uint8_t via_read(uint16_t address);
 void via_write(uint16_t address, uint8_t data);
-void via_sstep0 (void);
-void via_sstep1 (void);
-void via_reset (void);
+void via_sstep0(void);
+void via_sstep1(void);
+void via_reset(void);
 
 #endif

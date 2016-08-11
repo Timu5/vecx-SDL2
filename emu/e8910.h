@@ -1,7 +1,8 @@
 #ifndef __E8910_H
 #define __E8910_H
 
-typedef struct {
+typedef struct
+{
 	uint8_t regs[16];
 	int32_t per_a, per_b, per_c, per_n, per_e; /* Period */
 	int32_t cnt_a, cnt_b, cnt_c, cnt_n, cnt_e; /* count */
@@ -18,9 +19,9 @@ extern AY8910 PSG;
 
 #define e8910_read(x) PSG.regs[x]
 
-void e8910_reset (void);
-void e8910_init (void);
-void e8910_done (void);
-void e8910_write (uint8_t r, uint8_t v);
+void e8910_reset(void);
+void e8910_init(void);
+void e8910_done(void);
+void e8910_write(uint8_t r, uint8_t v);
 
 #endif
