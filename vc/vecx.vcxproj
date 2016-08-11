@@ -76,6 +76,7 @@
     <ClCompile Include="..\emu\edac.c" />
     <ClCompile Include="..\emu\vecx.c" />
     <ClCompile Include="..\main.c" />
+    <ClCompile Include="..\ser.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\emu\e6522.h" />
@@ -83,6 +84,7 @@
     <ClInclude Include="..\emu\e8910.h" />
     <ClInclude Include="..\emu\edac.h" />
     <ClInclude Include="..\emu\vecx.h" />
+    <ClInclude Include="..\ser.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

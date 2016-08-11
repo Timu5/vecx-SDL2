@@ -39,6 +39,9 @@
     <ClCompile Include="..\main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\ser.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\emu\e6522.h">
@@ -55,6 +58,9 @@
     </ClInclude>
     <ClInclude Include="..\emu\vecx.h">
       <Filter>Header Files\emu</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ser.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -9,6 +9,7 @@
 #include "emu/e6522.h"
 #include "emu/edac.h"
 #include "emu/vecx.h"
+#include "ser.h"
 
 enum
 {
@@ -112,18 +113,11 @@ static void load_cart(void)
 		if (!(f = fopen(cart_filename, "rb")))
 		{
 			perror(cart_filename);
+			return;
 		}
 		fread(cart, 1, sizeof(cart), f);
 		fclose(f);
 	}
-}
-
-static void load_state(char *name)
-{
-}
-
-static void save_state(char *name)
-{
 }
 
 static void resize(void)
@@ -189,8 +183,8 @@ static int readevents(void)
 		case SDL_KEYUP:
 			switch (e.key.keysym.sym)
 			{
-			case SDLK_F1: load_state("q.save"); break;
-			case SDLK_F5: save_state("q.save"); break;
+			case SDLK_F1: vecx_load("q.save"); break;
+			case SDLK_F2: vecx_save("q.save"); break;
 			case SDLK_r: load_cart(); vecx_reset(); break;
 
 			case SDLK_a: vecx_input(VECTREX_PAD1_BUTTON1, 0); break;
