@@ -21,45 +21,45 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\emu\e6522.c">
+    <ClCompile Include="..\src\emu\e6522.c">
       <Filter>Source Files\emu</Filter>
     </ClCompile>
-    <ClCompile Include="..\emu\e6809.c">
+    <ClCompile Include="..\src\emu\e6809.c">
       <Filter>Source Files\emu</Filter>
     </ClCompile>
-    <ClCompile Include="..\emu\e8910.c">
+    <ClCompile Include="..\src\emu\e8910.c">
       <Filter>Source Files\emu</Filter>
     </ClCompile>
-    <ClCompile Include="..\emu\edac.c">
+    <ClCompile Include="..\src\emu\edac.c">
       <Filter>Source Files\emu</Filter>
     </ClCompile>
-    <ClCompile Include="..\emu\vecx.c">
+    <ClCompile Include="..\src\emu\vecx.c">
       <Filter>Source Files\emu</Filter>
     </ClCompile>
-    <ClCompile Include="..\main.c">
+    <ClCompile Include="..\src\main.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\ser.c">
+    <ClCompile Include="..\src\ser.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\emu\e6522.h">
+    <ClInclude Include="..\src\emu\e6522.h">
       <Filter>Header Files\emu</Filter>
     </ClInclude>
-    <ClInclude Include="..\emu\e6809.h">
+    <ClInclude Include="..\src\emu\e6809.h">
       <Filter>Header Files\emu</Filter>
     </ClInclude>
-    <ClInclude Include="..\emu\e8910.h">
+    <ClInclude Include="..\src\emu\e8910.h">
       <Filter>Header Files\emu</Filter>
     </ClInclude>
-    <ClInclude Include="..\emu\edac.h">
+    <ClInclude Include="..\src\emu\edac.h">
       <Filter>Header Files\emu</Filter>
     </ClInclude>
-    <ClInclude Include="..\emu\vecx.h">
+    <ClInclude Include="..\src\emu\vecx.h">
       <Filter>Header Files\emu</Filter>
     </ClInclude>
-    <ClInclude Include="..\ser.h">
+    <ClInclude Include="..\src\ser.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
