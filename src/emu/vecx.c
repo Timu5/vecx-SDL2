@@ -205,7 +205,7 @@ void vecx_reset(void)
 	/* ram */
 
 	for (int r = 0; r < 1024; r++)
-		ram[r] = (uint8_t)r;
+		ram[r] = (uint8_t)rand();
 
 	e8910_reset();
 
