@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 #include "vecx.h"
 
@@ -9,42 +10,24 @@
 #include "e8910.h"
 #include "edac.h"
 
-void(*vecx_render) (void);
+//void(*vecx_render) (void);
 
-uint8_t rom[8192];
-uint8_t cart[32768];
-uint8_t ram[1024];
+//uint8_t rom[8192];
+//uint8_t cart[32768];
+//uint8_t ram[1024];
 
 /* the sound chip registers */
 
-uint8_t snd_select;
+//uint8_t snd_select;
 
-enum
-{
-	VECTREX_PDECAY = 30,      /* phosphor decay rate */
-
-	/* number of 6809 cycles before a frame redraw */
-
-	FCYCLES_INIT = VECTREX_MHZ / VECTREX_PDECAY,
-
-	/* max number of possible vectors that maybe on the screen at one time.
-	 * one only needs VECTREX_MHZ / VECTREX_PDECAY but we need to also store
-	 * deleted vectors in a single table
-	 */
-
-	VECTOR_MAX_CNT = VECTREX_MHZ / VECTREX_PDECAY,
-};
-
-size_t vector_draw_cnt;
-vector_t vectors[VECTOR_MAX_CNT];
-
-int32_t fcycles;
+//size_t vector_draw_cnt;
+//vector_t vectors[VECTOR_MAX_CNT];
 
 /* update the snd chips internal registers when VIA.ora/VIA.orb changes */
 
-static void snd_update(void)
+static void snd_update(vecx *vecx)
 {
-	switch (VIA.orb & 0x18)
+	switch (vecx->VIA.orb & 0x18)
 	{
 	case 0x00:
 		/* the sound chip is disabled */
@@ -54,95 +37,95 @@ static void snd_update(void)
 		break;
 	case 0x10:
 		/* the sound chip is recieving data */
-		if (snd_select != 14) e8910_write(snd_select, VIA.ora);
+		if (vecx->snd_select != 14) e8910_write(&vecx->PSG, vecx->snd_select, vecx->VIA.ora);
 		break;
 	case 0x18:
 		/* the sound chip is latching an address */
-		if ((VIA.ora & 0xf0) == 0x00) snd_select = VIA.ora & 0x0f;
+		if ((vecx->VIA.ora & 0xf0) == 0x00) vecx->snd_select = vecx->VIA.ora & 0x0f;
 		break;
 	}
 }
 
-static uint8_t read8_port_a()
+static uint8_t read8_port_a(vecx *vecx)
 {
-	if ((VIA.orb & 0x18) == 0x08)
+	if ((vecx->VIA.orb & 0x18) == 0x08)
 	{
 		/* the snd chip is driving port a */
-		return e8910_read(snd_select);
+		return e8910_read(&vecx->PSG, vecx->snd_select);
 	}
 	else
 	{
-		return VIA.ora;
+		return vecx->VIA.ora;
 	}
 }
 
-static uint8_t read8_port_b()
+static uint8_t read8_port_b(vecx *vecx)
 {
 	/* compare signal is an input so the value does not come from
 	* VIA.orb.
 	*/
-	if (VIA.acr & 0x80)
+	if (vecx->VIA.acr & 0x80)
 	{
 		/* timer 1 has control of bit 7 */
-		return (uint8_t)((VIA.orb & 0x5f) | VIA.t1pb7 | DAC.compare);
+		return (uint8_t)((vecx->VIA.orb & 0x5f) | vecx->VIA.t1pb7 | vecx->DAC.compare);
 	}
 	else
 	{
 		/* bit 7 is being driven by VIA.orb */
-		return (uint8_t)((VIA.orb & 0xdf) | DAC.compare);
+		return (uint8_t)((vecx->VIA.orb & 0xdf) | vecx->DAC.compare);
 	}
 }
 
-static void write8_port_a(uint8_t data)
+static void write8_port_a(vecx *vecx, uint8_t data)
 {
-	snd_update();
+	snd_update(vecx);
 
 	/* output of port a feeds directly into the dac which then
 	* feeds the x axis sample and hold.
 	*/
-	DAC.xsh = data ^ 0x80;
-	dac_update();
+    vecx->DAC.xsh = data ^ 0x80;
+	dac_update(&vecx->DAC);
 }
 
-static void write8_port_b(uint8_t data)
+static void write8_port_b(vecx *vecx, uint8_t data)
 {
 	(void)data;
-	snd_update();
-	dac_update();
+	snd_update(vecx);
+	dac_update(&vecx->DAC);
 }
 
-static uint8_t read8(uint16_t address)
+static uint8_t read8(vecx *vecx, uint16_t address)
 {
 	uint8_t data = 0xff;
 
 	if ((address & 0xe000) == 0xe000)
 	{
 		/* rom */
-		data = rom[address & 0x1fff];
+		data = vecx->rom[address & 0x1fff];
 	}
 	else if ((address & 0xe000) == 0xc000)
 	{
 		if (address & 0x800)
 		{
 			/* ram */
-			data = ram[address & 0x3ff];
+			data = vecx->ram[address & 0x3ff];
 		}
 		else if (address & 0x1000)
 		{
 			/* io */
-			data = via_read(address);
+			data = via_read(&vecx->VIA, address);
 		}
 	}
 	else if (address < 0x8000)
 	{
 		/* cartridge */
-		data = cart[address];
+		data = vecx->cart[address];
 	}
 
 	return data;
 }
 
-static void write8(uint16_t address, uint8_t data)
+static void write8(vecx *vecx, uint16_t address, uint8_t data)
 {
 	if ((address & 0xe000) == 0xe000)
 	{
@@ -154,12 +137,12 @@ static void write8(uint16_t address, uint8_t data)
 
 		if (address & 0x800)
 		{
-			ram[address & 0x3ff] = data;
+            vecx->ram[address & 0x3ff] = data;
 		}
 
 		if (address & 0x1000)
 		{
-			via_write(address, data);
+			via_write(&vecx->VIA, address, data);
 		}
 	}
 	else if (address < 0x8000)
@@ -168,96 +151,99 @@ static void write8(uint16_t address, uint8_t data)
 	}
 }
 
-static void addline(int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint8_t color)
+static void addline(vecx *vecx, int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint8_t color)
 {
-	vectors[vector_draw_cnt].x0 = x0;
-	vectors[vector_draw_cnt].y0 = y0;
-	vectors[vector_draw_cnt].x1 = x1;
-	vectors[vector_draw_cnt].y1 = y1;
-	vectors[vector_draw_cnt].color = color;
-	vector_draw_cnt++;
+    vecx->vectors[vecx->vector_draw_cnt].x0 = x0;
+    vecx->vectors[vecx->vector_draw_cnt].y0 = y0;
+    vecx->vectors[vecx->vector_draw_cnt].x1 = x1;
+    vecx->vectors[vecx->vector_draw_cnt].y1 = y1;
+    vecx->vectors[vecx->vector_draw_cnt].color = color;
+    vecx->vector_draw_cnt++;
 }
 
-void vecx_input(uint8_t key, uint8_t value)
+void vecx_input(vecx *vecx, uint8_t key, uint8_t value)
 {
-	uint8_t psg_io = e8910_read(14);
+	uint8_t psg_io = e8910_read(&vecx->PSG, 14);
 	switch (key)
 	{
-	case VECTREX_PAD1_BUTTON1: e8910_write(14, value ? psg_io & ~0x01 : psg_io | 0x01); break;
-	case VECTREX_PAD1_BUTTON2: e8910_write(14, value ? psg_io & ~0x02 : psg_io | 0x02); break;
-	case VECTREX_PAD1_BUTTON3: e8910_write(14, value ? psg_io & ~0x04 : psg_io | 0x04); break;
-	case VECTREX_PAD1_BUTTON4: e8910_write(14, value ? psg_io & ~0x08 : psg_io | 0x08); break;
+	case VECTREX_PAD1_BUTTON1: e8910_write(&vecx->PSG, 14, value ? psg_io & ~0x01 : psg_io | 0x01); break;
+	case VECTREX_PAD1_BUTTON2: e8910_write(&vecx->PSG, 14, value ? psg_io & ~0x02 : psg_io | 0x02); break;
+	case VECTREX_PAD1_BUTTON3: e8910_write(&vecx->PSG, 14, value ? psg_io & ~0x04 : psg_io | 0x04); break;
+	case VECTREX_PAD1_BUTTON4: e8910_write(&vecx->PSG, 14, value ? psg_io & ~0x08 : psg_io | 0x08); break;
 
-	case VECTREX_PAD2_BUTTON1: e8910_write(14, value ? psg_io & ~0x10 : psg_io | 0x10); break;
-	case VECTREX_PAD2_BUTTON2: e8910_write(14, value ? psg_io & ~0x20 : psg_io | 0x20); break;
-	case VECTREX_PAD2_BUTTON3: e8910_write(14, value ? psg_io & ~0x40 : psg_io | 0x40); break;
-	case VECTREX_PAD2_BUTTON4: e8910_write(14, value ? psg_io & ~0x80 : psg_io | 0x80); break;
+	case VECTREX_PAD2_BUTTON1: e8910_write(&vecx->PSG, 14, value ? psg_io & ~0x10 : psg_io | 0x10); break;
+	case VECTREX_PAD2_BUTTON2: e8910_write(&vecx->PSG, 14, value ? psg_io & ~0x20 : psg_io | 0x20); break;
+	case VECTREX_PAD2_BUTTON3: e8910_write(&vecx->PSG, 14, value ? psg_io & ~0x40 : psg_io | 0x40); break;
+	case VECTREX_PAD2_BUTTON4: e8910_write(&vecx->PSG, 14, value ? psg_io & ~0x80 : psg_io | 0x80); break;
 
-	case VECTREX_PAD1_X: DAC.jch0 = value; break;
-	case VECTREX_PAD1_Y: DAC.jch1 = value; break;
-	case VECTREX_PAD2_X: DAC.jch2 = value; break;
-	case VECTREX_PAD2_Y: DAC.jch3 = value; break;
+	case VECTREX_PAD1_X: vecx->DAC.jch0 = value; break;
+	case VECTREX_PAD1_Y: vecx->DAC.jch1 = value; break;
+	case VECTREX_PAD2_X: vecx->DAC.jch2 = value; break;
+	case VECTREX_PAD2_Y: vecx->DAC.jch3 = value; break;
 	}
 }
 
-void vecx_reset(void)
+void vecx_reset(vecx *vecx)
 {
 	/* ram */
-
 	for (int r = 0; r < 1024; r++)
-		ram[r] = (uint8_t)rand();
+        vecx->ram[r] = (uint8_t)rand();
 
-	e8910_reset();
+	e8910_reset(&vecx->PSG);
 
-	snd_select = 0;
+    vecx->snd_select = 0;
 
-	dac_add_line = addline;
+    vecx->DAC.add_line = addline;
+    vecx->DAC.userdata = (void*)vecx;
+    vecx->DAC.VIA = &vecx->VIA;
 
-	dac_reset();
+	dac_reset(&vecx->DAC);
 
-	vector_draw_cnt = 0;
-	fcycles = FCYCLES_INIT;
+    vecx->vector_draw_cnt = 0;
+    vecx->fcycles = FCYCLES_INIT;
 
-	via_read8_port_a = read8_port_a;
-	via_read8_port_b = read8_port_b;
-	via_write8_port_a = write8_port_a;
-	via_write8_port_b = write8_port_b;
+	vecx->VIA.read8_port_a = read8_port_a;
+    vecx->VIA.read8_port_b = read8_port_b;
+    vecx->VIA.write8_port_a = write8_port_a;
+    vecx->VIA.write8_port_b = write8_port_b;
+    vecx->VIA.userdata = (void*)vecx;
 
-	via_reset();
+	via_reset(&vecx->VIA);
 
-	e6809_read8 = read8;
-	e6809_write8 = write8;
+	vecx->CPU.read8 = read8;
+    vecx->CPU.write8 = write8;
+    vecx->CPU.userdata = (void*)vecx;
 
-	e6809_reset();
+	e6809_reset(&vecx->CPU);
 }
 
-void vecx_emu(int32_t cycles)
+void vecx_emu(vecx *vecx, int32_t cycles)
 {
 	while (cycles > 0)
 	{
-		uint16_t icycles = e6809_sstep(VIA.ifr & 0x80, 0);
+		uint16_t icycles = e6809_sstep(&vecx->CPU, vecx->VIA.ifr & 0x80, 0);
 
 		for (uint16_t c = 0; c < icycles; c++)
 		{
-			via_sstep0();
-			dac_sstep();
-			via_sstep1();
+			via_sstep0(&vecx->VIA);
+			dac_sstep(&vecx->DAC);
+			via_sstep1(&vecx->VIA);
 		}
 
 		cycles -= (int32_t)icycles;
 
-		fcycles -= (int32_t)icycles;
+        vecx->fcycles -= (int32_t)icycles;
 
-		if (fcycles < 0)
+		if (vecx->fcycles < 0)
 		{
 
-			fcycles += FCYCLES_INIT;
-			vecx_render();
+            vecx->fcycles += FCYCLES_INIT;
+            vecx->render();
 
 			/* everything that was drawn during this pass
 			 * now is being removed.
 			 */
-			vector_draw_cnt = 0;
+            vecx->vector_draw_cnt = 0;
 		}
 	}
 }

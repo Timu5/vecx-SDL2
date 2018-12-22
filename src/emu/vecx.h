@@ -1,10 +1,26 @@
 #ifndef __VECX_H
 #define __VECX_H
 
+#include "e6522.h"
+#include "e6809.h"
+#include "e8910.h"
+#include "edac.h"
+
 enum
 {
 	VECTREX_MHZ = 1500000, /* speed of the vectrex being emulated */
 	VECTREX_COLORS = 128,     /* number of possible colors ... grayscale */
+
+    VECTREX_PDECAY = 30,      /* phosphor decay rate */
+
+    /* number of 6809 cycles before a frame redraw */
+    FCYCLES_INIT = VECTREX_MHZ / VECTREX_PDECAY,
+
+    /* max number of possible vectors that maybe on the screen at one time.
+    * one only needs VECTREX_MHZ / VECTREX_PDECAY but we need to also store
+    * deleted vectors in a single table
+    */
+    VECTOR_MAX_CNT = VECTREX_MHZ / VECTREX_PDECAY,
 
 	VECTREX_PAD1_BUTTON1 = 0,
 	VECTREX_PAD1_BUTTON2 = 1,
@@ -32,19 +48,31 @@ typedef struct vector_type
 	uint8_t color;
 } vector_t;
 
-extern void(*vecx_render) (void);
 
-extern uint8_t rom[8192];
-extern uint8_t cart[32768];
-extern uint8_t ram[1024];
+typedef struct
+{
+    M6809 CPU;
+    VIA6522 VIA;
+    AY8910 PSG;
+    DACVec DAC;
 
-extern uint8_t snd_select;
+    uint8_t rom[8192];
+    uint8_t cart[32768];
+    uint8_t ram[1024];
 
-extern size_t vector_draw_cnt;
-extern vector_t vectors[];
+    int32_t fcycles;
 
-void vecx_input(uint8_t key, uint8_t value);
-void vecx_reset(void);
-void vecx_emu(int32_t cycles);
+    uint8_t snd_select;
+
+    size_t vector_draw_cnt;
+    vector_t vectors[VECTOR_MAX_CNT];
+
+    void(*render) (void);
+
+} vecx;
+
+void vecx_input(vecx *vecx, uint8_t key, uint8_t value);
+void vecx_reset(vecx *vecx);
+void vecx_emu(vecx *vecx, int32_t cycles);
 
 #endif

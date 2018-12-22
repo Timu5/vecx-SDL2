@@ -1,10 +1,13 @@
 #ifndef __EDAC_H
 #define __EDAC_H
 
+#include "e6522.h"
+
 enum {
 	DAC_MAX_X = 33000,
 	DAC_MAX_Y = 41000
 };
+
 
 typedef struct
 {
@@ -35,14 +38,15 @@ typedef struct
 	int32_t vector_dx;
 	int32_t vector_dy;
 	uint8_t vector_color;
+
+    VIA6522 *VIA;
+
+    void *userdata;
+    void(*add_line) (void* userdata, int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint8_t color);
 } DACVec;
 
-extern DACVec DAC;
-
-extern void(*dac_add_line) (int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint8_t color);
-
-void dac_update(void);
-void dac_sstep(void);
-void dac_reset(void);
+void dac_update(DACVec *DAC);
+void dac_sstep(DACVec *DAC);
+void dac_reset(DACVec *DAC);
 
 #endif

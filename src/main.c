@@ -19,6 +19,8 @@ enum
 	DEFAULT_HEIGHT = 615
 };
 
+vecx vectrex;
+
 static SDL_Window *window = NULL;
 static SDL_Renderer *renderer = NULL;
 static SDL_Texture *overlay = NULL;
@@ -42,13 +44,13 @@ static void render(void)
 		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 128);
 		SDL_RenderFillRect(renderer, NULL);
 
-		for (size_t v = 0; v < vector_draw_cnt; v++)
+		for (size_t v = 0; v < vectrex.vector_draw_cnt; v++)
 		{
-			Uint8 c = vectors[v].color * 256 / VECTREX_COLORS;
-			int x0 = vectors[v].x0 / scl_factor;
-			int y0 = vectors[v].y0 / scl_factor;
-			int x1 = vectors[v].x1 / scl_factor;
-			int y1 = vectors[v].y1 / scl_factor;
+			Uint8 c = vectrex.vectors[v].color * 256 / VECTREX_COLORS;
+			int x0 = vectrex.vectors[v].x0 / scl_factor;
+			int y0 = vectrex.vectors[v].y0 / scl_factor;
+			int x1 = vectrex.vectors[v].x1 / scl_factor;
+			int y1 = vectrex.vectors[v].y1 / scl_factor;
 
 			SDL_SetRenderDrawColor(renderer, 255, 255, 255, c);
 			if (x0 == x1 && y0 == y1)
@@ -96,7 +98,7 @@ static void load_bios(void)
 		perror(bios_filename);
 		quit();
 	}
-	if (fread(rom, 1, sizeof(rom), f) != sizeof(rom))
+	if (fread(vectrex.rom, 1, sizeof(vectrex.rom), f) != sizeof(vectrex.rom))
 	{
 		fprintf(stderr, "Invalid bios length\n");
 		quit();
@@ -106,7 +108,7 @@ static void load_bios(void)
 
 static void load_cart(void)
 {
-	memset(cart, 0, sizeof(cart));
+	memset(vectrex.cart, 0, sizeof(vectrex.cart));
 	if (cart_filename)
 	{
 		FILE *f;
@@ -115,7 +117,7 @@ static void load_cart(void)
 			perror(cart_filename);
 			return;
 		}
-		fread(cart, 1, sizeof(cart), f);
+		fread(vectrex.cart, 1, sizeof(vectrex.cart), f);
 		fclose(f);
 	}
 }
@@ -164,37 +166,37 @@ static int readevents(void)
 		case SDL_DROPFILE:
 			cart_filename = e.drop.file;
 			load_cart();
-			vecx_reset();
+			vecx_reset(&vectrex);
 			break;
 		case SDL_KEYDOWN:
 			switch (e.key.keysym.sym)
 			{
 			case SDLK_ESCAPE: return 1;
-			case SDLK_a: vecx_input(VECTREX_PAD1_BUTTON1, 1); break;
-			case SDLK_s: vecx_input(VECTREX_PAD1_BUTTON2, 1); break;
-			case SDLK_d: vecx_input(VECTREX_PAD1_BUTTON3, 1); break;
-			case SDLK_f: vecx_input(VECTREX_PAD1_BUTTON4, 1); break;
-			case SDLK_LEFT: vecx_input(VECTREX_PAD1_X, 0x00); break;
-			case SDLK_RIGHT: vecx_input(VECTREX_PAD1_X, 0xff); break;
-			case SDLK_UP: vecx_input(VECTREX_PAD1_Y, 0xff); break;
-			case SDLK_DOWN: vecx_input(VECTREX_PAD1_Y, 0x00); break;
+			case SDLK_a: vecx_input(&vectrex, VECTREX_PAD1_BUTTON1, 1); break;
+			case SDLK_s: vecx_input(&vectrex, VECTREX_PAD1_BUTTON2, 1); break;
+			case SDLK_d: vecx_input(&vectrex, VECTREX_PAD1_BUTTON3, 1); break;
+			case SDLK_f: vecx_input(&vectrex, VECTREX_PAD1_BUTTON4, 1); break;
+			case SDLK_LEFT: vecx_input(&vectrex, VECTREX_PAD1_X, 0x00); break;
+			case SDLK_RIGHT: vecx_input(&vectrex, VECTREX_PAD1_X, 0xff); break;
+			case SDLK_UP: vecx_input(&vectrex, VECTREX_PAD1_Y, 0xff); break;
+			case SDLK_DOWN: vecx_input(&vectrex, VECTREX_PAD1_Y, 0x00); break;
 			}
 			break;
 		case SDL_KEYUP:
 			switch (e.key.keysym.sym)
 			{
-			case SDLK_F1: vecx_load("q.save"); break;
-			case SDLK_F2: vecx_save("q.save"); break;
-			case SDLK_r: load_cart(); vecx_reset(); break;
+			case SDLK_F1: vecx_load(&vectrex, "q.save"); break;
+			case SDLK_F2: vecx_save(&vectrex, "q.save"); break;
+			case SDLK_r: load_cart(); vecx_reset(&vectrex); break;
 
-			case SDLK_a: vecx_input(VECTREX_PAD1_BUTTON1, 0); break;
-			case SDLK_s: vecx_input(VECTREX_PAD1_BUTTON2, 0); break;
-			case SDLK_d: vecx_input(VECTREX_PAD1_BUTTON3, 0); break;
-			case SDLK_f: vecx_input(VECTREX_PAD1_BUTTON4, 0); break;
-			case SDLK_LEFT: vecx_input(VECTREX_PAD1_X, 0x80); break;
-			case SDLK_RIGHT: vecx_input(VECTREX_PAD1_X, 0x80); break;
-			case SDLK_UP: vecx_input(VECTREX_PAD1_Y, 0x80); break;
-			case SDLK_DOWN: vecx_input(VECTREX_PAD1_Y, 0x80); break;
+			case SDLK_a: vecx_input(&vectrex, VECTREX_PAD1_BUTTON1, 0); break;
+			case SDLK_s: vecx_input(&vectrex, VECTREX_PAD1_BUTTON2, 0); break;
+			case SDLK_d: vecx_input(&vectrex, VECTREX_PAD1_BUTTON3, 0); break;
+			case SDLK_f: vecx_input(&vectrex, VECTREX_PAD1_BUTTON4, 0); break;
+			case SDLK_LEFT: vecx_input(&vectrex, VECTREX_PAD1_X, 0x80); break;
+			case SDLK_RIGHT: vecx_input(&vectrex, VECTREX_PAD1_X, 0x80); break;
+			case SDLK_UP: vecx_input(&vectrex, VECTREX_PAD1_Y, 0x80); break;
+			case SDLK_DOWN: vecx_input(&vectrex, VECTREX_PAD1_Y, 0x80); break;
 			}
 			break;
 		}
@@ -205,10 +207,10 @@ static int readevents(void)
 static void emuloop(void)
 {
 	Uint32 next_time = SDL_GetTicks() + EMU_TIMER;
-	vecx_reset();
+	vecx_reset(&vectrex);
 	for (;;)
 	{
-		vecx_emu((VECTREX_MHZ / 1000) * EMU_TIMER);
+		vecx_emu(&vectrex, (VECTREX_MHZ / 1000) * EMU_TIMER);
 		if (readevents()) break;
 
 		{
@@ -331,12 +333,13 @@ int main(int argc, char *argv[])
 	load_bios();
 	load_cart();
 	load_overlay();
-	e8910_init();
-	vecx_render = render;
+	e8910_init(&vectrex.PSG);
+    vectrex.render = render;
 
 	emuloop();
 
-	e8910_done();
+	e8910_done(&vectrex.PSG);
+
 	quit();
 
 	return 0;

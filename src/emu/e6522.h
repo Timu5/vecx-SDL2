@@ -27,19 +27,18 @@ typedef struct
 	uint8_t ca2;
 	uint8_t cb2h;  /* basic handshake version of cb2 */
 	uint8_t cb2s;  /* version of cb2 controlled by the shift register */
+
+    void *userdata;
+    uint8_t(*read8_port_a) (void *userdata);
+    uint8_t(*read8_port_b) (void *userdata);
+    void(*write8_port_a) (void *userdata, uint8_t data);
+    void(*write8_port_b) (void *userdata, uint8_t data);
 } VIA6522;
 
-extern VIA6522 VIA;
-
-extern uint8_t(*via_read8_port_a) ();
-extern uint8_t(*via_read8_port_b) ();
-extern void(*via_write8_port_a) (uint8_t data);
-extern void(*via_write8_port_b) (uint8_t data);
-
-uint8_t via_read(uint16_t address);
-void via_write(uint16_t address, uint8_t data);
-void via_sstep0(void);
-void via_sstep1(void);
-void via_reset(void);
+uint8_t via_read(VIA6522 *VIA, uint16_t address);
+void via_write(VIA6522 *VIA, uint16_t address, uint8_t data);
+void via_sstep0(VIA6522 *VIA);
+void via_sstep1(VIA6522 *VIA);
+void via_reset(VIA6522 *VIA);
 
 #endif

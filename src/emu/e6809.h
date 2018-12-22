@@ -13,16 +13,14 @@ typedef struct
 	uint16_t irq_status; /* flag to see if interrupts should be handled (sync/cwai). */
 	uint16_t *rptr_xyus[4];
 
+    void *userdata;
+    /* user defined read and write functions */
+    uint8_t(*read8) (void *userdata, uint16_t address);
+    void(*write8) (void *userdata, uint16_t address, uint8_t data);
 } M6809;
 
-extern M6809 CPU;
 
-/* user defined read and write functions */
-
-extern uint8_t(*e6809_read8) (uint16_t address);
-extern void(*e6809_write8) (uint16_t address, uint8_t data);
-
-void e6809_reset(void);
-uint16_t e6809_sstep(uint16_t irq_i, uint16_t irq_f);
+void e6809_reset(M6809 *CPU);
+uint16_t e6809_sstep(M6809 *CPU, uint16_t irq_i, uint16_t irq_f);
 
 #endif
