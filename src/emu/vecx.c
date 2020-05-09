@@ -116,7 +116,7 @@ static uint8_t read8(vecx *vecx, uint16_t address)
 			data = via_read(&vecx->VIA, address);
 		}
 	}
-	else if (address < 0x8000)
+	else if (address < 0xc800) /* WAS 8000 - updated for 50K carts */
 	{
 		/* cartridge */
 		data = vecx->cart[address];
@@ -145,7 +145,7 @@ static void write8(vecx *vecx, uint16_t address, uint8_t data)
 			via_write(&vecx->VIA, address, data);
 		}
 	}
-	else if (address < 0x8000)
+	else if (address < 0xc800) /* was 8000 - updated for 50k carts */
 	{
 		/* cartridge */
 	}
