@@ -57,7 +57,7 @@ typedef struct
     DACVec DAC;
 
     uint8_t rom[8192];
-    uint8_t cart[32768];
+    uint8_t cart[51200];
     uint8_t ram[1024];
 
     int32_t fcycles;
